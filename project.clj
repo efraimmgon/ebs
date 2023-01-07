@@ -13,7 +13,7 @@
                  [cljs-ajax "0.8.4"]
                  [cljsjs/react "17.0.2-0"]
                  [cljsjs/react-dom "17.0.2-0"]
-                 [clojure.java-time "1.1.0"]
+                 [clojure.java-time "1.2.0"]
                  [com.cognitect/transit-clj "1.0.329"]
                  [com.cognitect/transit-cljs "0.8.280"]
                  [conman "0.9.5"]
