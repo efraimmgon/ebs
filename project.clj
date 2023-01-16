@@ -3,7 +3,8 @@
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
 
-  :dependencies [[buddy/buddy-auth "3.0.323"]
+  :dependencies [[binaryage/oops "0.7.2"]
+                 [buddy/buddy-auth "3.0.323"]
                  [buddy/buddy-core "1.10.413"]
                  [buddy/buddy-hashers "1.8.158"]
                  [buddy/buddy-sign "3.4.333"]
@@ -30,6 +31,7 @@
                  [metosin/muuntaja "0.6.8"]
                  [metosin/reitit "0.5.18"]
                  [metosin/ring-http-response "0.9.3"]
+                 [metosin/spec-tools "0.10.1"]
                  [mount "0.1.16"]
                  [nrepl "1.0.0"]
                  [org.clojure/clojure "1.11.1"]

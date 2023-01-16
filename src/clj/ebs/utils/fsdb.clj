@@ -85,11 +85,13 @@
 
 (defn setup!
   "Checks if the db path and the settings file are set, otherwise will do it."
-  []
+  [& [opts]]
   (when-not (fs/exists? db-dir)
     (fs/mkdirs db-dir))
   (when-not (fs/exists? settings-path)
-    (save-edn! settings-path {}))
+    (let [opts (merge {:use-qualified-keywords? false}
+                      opts)]
+      (save-edn! settings-path opts)))
   (load-settings!))
 
 (setup!)
@@ -148,7 +150,11 @@
   ; We generate the next id for the table and assoc it to the data map before
   ; adding the data to the db.
   (let [id (next-id! tname)
-        data (assoc data (keyword (name tname) "id") id)]
+        data (assoc data
+                    (if (:use-qualified-keywords? @settings)
+                      (keyword (name tname) "id")
+                      :id)
+                    id)]
     (save-edn! (io/file
                 (table-path tname)
                 (str id))
@@ -158,7 +164,10 @@
   "Updates the record for the given table id."
   [tname data]
   (when-let [f (table-file tname
-                           (get data (keyword (name tname) "id")))]
+                           (get data
+                                (if (:use-qualified-keywords? @settings)
+                                  (keyword (name tname) "id")
+                                  :id)))]
     (save-edn! f data)))
 
 (defn delete!
@@ -174,6 +183,7 @@
 
 (comment
 
+  (create-table! :project)
   "tests:"
 
   (delete-table! :user)

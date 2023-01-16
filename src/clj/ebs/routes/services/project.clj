@@ -1,0 +1,71 @@
+(ns ebs.routes.services.project
+  (:require
+   [clojure.spec.alpha :as s]
+   [ebs.routes.services.common :as common]
+   [ebs.utils.fsdb :as fsdb]
+   [ring.util.http-response :as response]))
+
+(defn now [] (java.util.Date.))
+
+;;; ---------------------------------------------------------------------------
+;;; DOMAIN
+
+(s/def :project/id int?)
+(s/def :project/title string?)
+(s/def :project/description string?)
+;(s/def :project/start-date inst?)
+;(s/def :project/due-date inst?)
+(s/def :project/created_at inst?)
+(s/def :project/updated_at inst?)
+
+(s/def :project/Project
+  (s/keys :req-un [:project/id
+                   :project/title
+                   :project/description
+                   ;:project/start-date
+                   ;:project/due-date
+                   :project/created_at
+                   :project/updated_at]))
+
+(s/def :project/projects (s/* :project/Project))
+
+(defn get-projects
+  "Return all project records."
+  [_]
+  (response/ok
+   (if-let [projects (fsdb/get-all :project)]
+     projects
+     [])))
+
+(defn get-project
+  "Return a project record by id."
+  [id]
+  (response/ok
+   (fsdb/get-by-id :project id)))
+
+(defn create-project!
+  "Create a project record in the db. Returns the created project."
+  [project]
+  (let [now (now)]
+    (response/ok
+     (fsdb/create! :project
+                   (assoc project
+                          :created_at now
+                          :updated_at now)))))
+
+(defn update-project!
+  "Update a project record in the db. Returns the updated project."
+  [project]
+  (prn :project project)
+  (response/ok
+   (let [old (fsdb/get-by-id :project (:id project))
+         project (merge old project)]
+     (fsdb/update! :project
+                   (assoc project
+                          :updated_at (now))))))
+
+(defn delete-project!
+  "Delete a project record in the db."
+  [id]
+  (fsdb/delete! :project id)
+  (response/ok {:result :ok}))
