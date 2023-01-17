@@ -85,7 +85,8 @@
       ; next to the title there should be a button to delete the project
       {:title [:span "Edit Project"
                [:button.btn.btn-danger.float-right
-                {:on-click #(rf/dispatch [:project/delete])}
+                ;; TODO: add a modal to confirm the deletion.
+                {:on-click #(rf/dispatch [:project/delete (:id @fields)])}
                 "Delete"]]
 
        :body

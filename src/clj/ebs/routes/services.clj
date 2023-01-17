@@ -63,8 +63,8 @@
            :responses {200 {:body :project/projects}}
            :handler project/get-projects}
      :post {:summary "Create a project record in the db."
-            :parameters {:body (s/keys :req-un [:project/title
-                                                :project/description])}
+            :parameters {:body (s/keys :req-un [:project/title]
+                                       :opt-un [:project/description])}
             :responses {200 {:body :project/Project}}
             :handler (fn [{:keys [parameters]}]
                        (project/create-project!
@@ -76,14 +76,11 @@
      {:get {:summary "Return a project record by id."
             :responses {200 {:body :project/Project}}
             :handler (fn [{:keys [parameters]}]
-                       (newline)
-                       (prn :parameters parameters) (flush)
-                       ; get the project, print it and return it:
                        (project/get-project
                         (get-in parameters [:path :project-id])))}
       :put {:summary "Update a project record with params."
-            :parameters {:body (s/keys :req-un [:project/title
-                                                :project/description])}
+            :parameters {:body (s/keys :req-un [:project/title]
+                                       :opt-un [:project/description])}
             :responses {200 {:body :project/Project}}
             :handler (fn [{:keys [parameters]}]
                        (project/update-project!

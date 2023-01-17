@@ -28,7 +28,6 @@
       :params @project})
    nil))
 
-; a handler to update a project
 (rf/reg-event-fx
  :project/update
  base-interceptors
@@ -48,6 +47,18 @@
  (fn [_ [project-id]]
    (ajax/GET (str "/api/projects/" project-id)
      {:handler #(rf/dispatch [:assoc-in [:project/active] %])
+      :error-handler #(rf/dispatch [:common/set-error %])
+      :response-format :json
+      :keywords? true})
+   nil))
+
+(rf/reg-event-fx
+ :project/delete
+ base-interceptors
+ (fn [{:keys [db]} [project-id]]
+   (ajax/DELETE (str "/api/projects/" project-id)
+     {:handler #(do (rf/dispatch [:navigate! :home])
+                    (rf/dispatch [:assoc-in [:project/active] %]))
       :error-handler #(rf/dispatch [:common/set-error %])
       :response-format :json
       :keywords? true})

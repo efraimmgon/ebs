@@ -21,11 +21,11 @@
 (s/def :project/Project
   (s/keys :req-un [:project/id
                    :project/title
-                   :project/description
                    ;:project/start-date
                    ;:project/due-date
                    :project/created_at
-                   :project/updated_at]))
+                   :project/updated_at]
+          :opt-un [:project/description]))
 
 (s/def :project/projects (s/* :project/Project))
 
