@@ -33,6 +33,15 @@
                                 (rf/dispatch
                                  [:project/load-project
                                   (js/parseInt
+                                   (get-in path [:path :project-id]))]))}]}]
+      ["/stories"
+       {:name :project/view-stories
+        :view #'project/project-stories-ui
+        :controllers [{:parameters {:path [:project-id]}
+                       :start (fn [path]
+                                (rf/dispatch
+                                 [:project/load-project
+                                  (js/parseInt
                                    (get-in path [:path :project-id]))]))}]}]]]]))
 
 (defn start-router! []

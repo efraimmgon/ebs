@@ -144,6 +144,34 @@
            (map fs/name)
            (map #(get-by-id tname %))))
 
+(defn select
+  "Returns a list of records that match the given key/value pairs.
+  Opts is a map of #{:limit :order-by :offset :filter}.
+   
+   (select 
+     :users 
+     {:where #(= (:name %) \"John\"),
+      :offset 10, :limit 10, :order-by :age})}))"
+  ([tname opts]
+   (let [records (get-all tname)
+         records (if-let [where (:where opts)]
+                   (filter where records)
+                   records)
+         records (if-let [k (:order-by opts)]
+                   (sort-by k records)
+                   records)
+         records (if (= :desc (:order-by opts))
+                   (reverse records)
+                   records)
+         records (if-let [offset (:offset opts)]
+                   (drop offset records)
+                   records)
+         records (if-let [limit (:limit opts)]
+                   (take limit records)
+                   records)]
+     records)))
+
+
 (defn create!
   "Creates a new table record. Returns the data with the id."
   [tname data]
