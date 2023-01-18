@@ -252,11 +252,6 @@
 
    [forms/checkbox-input
     {:name :checkbox
-     :label "Checkbox 1"
-     :value :checkbox1
-     :default-checked (when (-> @(rf/subscribe [:query :checkbox]) nil? true))}]
-   [forms/checkbox-input
-    {:name :checkbox
      :label "Checkbox 2"
      :value :checkbox2}]
 

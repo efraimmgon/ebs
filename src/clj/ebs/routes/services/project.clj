@@ -29,11 +29,14 @@
 
 (s/def :project/projects (s/* :project/Project))
 
+;;; ---------------------------------------------------------------------------
+;;; ROUTES
+
 (defn get-projects
   "Return all project records."
   [_]
   (response/ok
-   (if-let [projects (fsdb/get-all :project)]
+   (if-let [projects (seq (fsdb/get-all :project))]
      projects
      [])))
 

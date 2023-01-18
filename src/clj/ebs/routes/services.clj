@@ -12,7 +12,9 @@
    [ebs.middleware.formats :as formats]
    [ebs.middleware.exception :as exception]
    [ebs.routes.services.project :as project]
-   [ring.util.http-response :refer :all]))
+   [ebs.routes.services.story :as story]
+   [ring.util.http-response :refer :all]
+   [reitit.core :as r]))
 
 ;;; -----------------------------------------------------------------------
 ;;; Utils
@@ -56,6 +58,49 @@
 ;;; -----------------------------------------------------------------------
 ;;; Routes
 
+(defn story-routes
+  "Return a vector of story routes."
+  []
+  ["/stories"
+   [""
+    {:get {:summary "Return all story records."
+           :responses {200 {:body :story/stories}}
+           :handler story/get-project-stories}
+     :post {:summary "Create a story record in the db."
+            :parameters {:body (s/keys :req-un [:story/project_id
+                                                :story/title]
+                                       :opt-un [:story/description
+                                                :story/due_date
+                                                :story/priority])}
+            :responses {200 {:body :story/Story}}
+            :handler (fn [{:keys [parameters]}]
+                       (story/create-story!
+                        (:body parameters)))}}]
+
+   ["/{story-id}"
+    {:parameters {:path {:story-id int?}}}
+    [""
+     {:get {:summary "Return a story record by id."
+            :responses {200 {:body :story/Story}}
+            :handler (fn [{:keys [parameters]}]
+                       (story/get-story
+                        (get-in parameters [:path :story-id])))}
+      :put {:summary "Update a story record with params."
+            :parameters {:body (s/keys :req-un [:story/title]
+                                       :opt-un [:story/description
+                                                :story/due_date
+                                                :story/priority])}
+            :responses {200 {:body :story/Story}}
+            :handler (fn [{:keys [parameters]}]
+                       (story/update-story!
+                        (get-in parameters [:path :story-id])
+                        (:body parameters)))}
+      :delete {:summary "Delete a story record."
+               :responses {200 {:body :story/Story}}
+               :handler (fn [{:keys [parameters]}]
+                          (story/delete-story!
+                           (get-in parameters [:path :story-id])))}}]]])
+
 (defn project-routes []
   ["/projects"
    [""
@@ -90,7 +135,12 @@
                :responses {200 {:body :result/Result}}
                :handler (fn [{:keys [parameters]}]
                           (project/delete-project!
-                           (get-in parameters [:path :project-id])))}}]]])
+                           (get-in parameters [:path :project-id])))}}]
+    ;; "/api/project/{project-id}/stories/...r"
+    (story-routes)]])
+
+
+
 
 (defn service-routes []
   ["/api"
@@ -128,3 +178,9 @@
 
    ;; "/projects/..."
    (project-routes)])
+
+(comment
+
+  (r/match-by-path
+   (r/router (service-routes))
+   "/api/projects/5/stories"))

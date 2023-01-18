@@ -16,9 +16,10 @@
     :body [:p description]
     :footer
     [:div
-     [:button.btn.btn-primary
-      {:on-click #(rf/dispatch [:project/view id])}
-      "View"] " "
+     ; Use a link instead of a button
+     [:a.btn.btn-primary
+      {:href (rfe/href :project/view-stories {:project-id id})}
+      "Open"] " "
      [:a.btn.btn-warning
       {:href (rfe/href :project/edit {:project-id id})}
       "Edit"] " "

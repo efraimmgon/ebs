@@ -4,7 +4,8 @@
    [reitit.core :as reitit]
    [reitit.frontend.easy :as rfe]
    [re-frame.core :as rf]
-   [ebs.app.project.views :as project]))
+   [ebs.app.project.views :as project]
+   [ebs.app.story.views :as story]))
 
 (defn page []
   (when-let [page @(rf/subscribe [:common/page])]
@@ -36,11 +37,11 @@
                                    (get-in path [:path :project-id]))]))}]}]
       ["/stories"
        {:name :project/view-stories
-        :view #'project/project-stories-ui
+        :view #'story/stories-ui
         :controllers [{:parameters {:path [:project-id]}
                        :start (fn [path]
                                 (rf/dispatch
-                                 [:project/load-project
+                                 [:stories/load
                                   (js/parseInt
                                    (get-in path [:path :project-id]))]))}]}]]]]))
 
