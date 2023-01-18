@@ -12,25 +12,55 @@
 ; - A story has an id.
 ; - A story has a title.
 ; - A story has a description.
-; - A story has a status. A status is a keyword. 
-; It can ben one of #{:pending :in-progress :done}
+; - A story has a status.
 ; - A story has a priority. A lower number is higher priority.
 ; - A story has a due date.
-; - A story has many labels. A label is a keyword. 
-; It can be one of #{:bug :feature :chore}
+; - A story has many labels.
 ; - A story has many tasks.
 ; - A story has many comments.
 
-(s/def :status/id #{:pending :in-progress :done})
-(s/def :label/id #{:bug :feature :chore})
+(def priorities
+  [{:id :urgent :name "Urgent"}
+   {:id :high :name "High"}
+   {:id :medium :name "Medium"}
+   {:id :low :name "Low"}
+   {:id :dont-fix :name "Don't Fix"}])
+
+(s/def :priority/id keyword?)
+(s/def :priority/name string?)
+
+(s/def :priority/Priority
+  (s/keys :req-un [:priority/id :priority/name]))
+
+(def statuses
+  [{:id :pending :name "Pending"}
+   {:id :in-progress :name "In Progress"}
+   {:id :done :name "Done"}])
+
+(s/def :status/id keyword?)
+(s/def :status/name string?)
+
+(s/def :status/Status
+  (s/keys :req-un [:status/id :status/name]))
+
+(def labels
+  [{:id :bug :name "Bug"}
+   {:id :feature :name "Feature"}
+   {:id :chore :name "Chore"}])
+
+(s/def :label/id keyword?)
+(s/def :label/name string?)
+
+(s/def :label/Label
+  (s/keys :req-un [:label/id :label/name]))
 
 (s/def :story/id int?)
 (s/def :story/project_id int?)
 (s/def :story/title string?)
-(s/def :story/status :status/id)
-(s/def :story/labels (s/* :label/id))
 (s/def :story/description string?)
-(s/def :story/priority int?)
+(s/def :story/status :status/Status)
+(s/def :story/labels (s/* :label/Label))
+(s/def :story/priority :priority/Priority)
 (s/def :story/due_date inst?)
 (s/def :story/created_at inst?)
 (s/def :story/updated_at inst?)

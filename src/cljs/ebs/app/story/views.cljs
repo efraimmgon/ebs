@@ -1,5 +1,6 @@
 (ns ebs.app.story.views
   (:require
+   clojure.string
    [reagent.core :as r]
    [re-frame.core :as rf]
    [ebs.utils.components :as c]
@@ -65,42 +66,43 @@
            :name (conj path :title)
            :placehodler "Title"
            :class "form-control"}]]
-        [c/form-group 
+        [c/form-group
          "Description"
          [forms/textarea
           {:name (conj path :description)
            :placeholder "Description"
-           :class "form-control"}]]]
+           :class "form-control"}]]
         [c/form-group
-         [:label "Status"]
-         [:select.form-control
-          {:value (get-in @fields [:status])
-           :on-change #(rf/dispatch [:assoc-in (conj path :status) (-> % .-target .-value)])}
-          [:option {:value ""} "Select a status"]
+         "Status"
+         (into
+          [forms/select
+           {:name (conj path :status)
+            :class "form-control"}]
           (doall
            (for [status (rf/subscribe [:statuses/all])]
              ^{:key (:id status)}
-             [:option {:value (:id status)} (:title status)]))]]
+             [:option {:value (:id status)} (:name status)])))]
         [c/form-group
-         [:label "Type"]
-         [:select.form-control
-          {:value (get-in @fields [:type])
-           :on-change #(rf/dispatch [:assoc-in (conj path :type) (-> % .-target .-value)])}
-          [:option {:value ""} "Select a type"]
-          (doall
-           (for [type (rf/subscribe [:types/all])]
-             ^{:key (:id type)}
-             [:option {:value (:id type)} (:title type)]))]]
+         "Labels"
+         (doall
+          (for [label (rf/subscribe [:labels/all])]
+            ^{:key (:id label)}
+            [forms/checkbox-input
+             {:name (conj path :labels)
+              :label (:name label)
+              :value (:id label)}]))]
         [c/form-group
-         [:label "Priority"]
-         [:select.form-control
-          {:value (get-in @fields [:priority])}
-          :on-change #(rf/dispatch [:assoc-in (conj path :priority) (-> % .-target .-value)])
-          [:option {:value ""} "Select a priority"]
+         "Priority"
+         (into
+          [forms/select
+           {:name (conj path :priority)}
+           :class "form-control"
+           [:option {:value ""} "Select a priority"]]
           (doall
            (for [priority (rf/subscribe [:priorities/all])]
              ^{:key (:id priority)}
-             [:option {:value (:id priority)} (:title priority)]))]]]
+             [:option {:value (:id priority)} (:title priority)])))]]
+
        :footer
        [:div
         [:button.btn.btn-primary

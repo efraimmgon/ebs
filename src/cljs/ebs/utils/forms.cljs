@@ -134,8 +134,18 @@
       [:input (assoc edited-attrs
                      :checked (= value (get-stored-val name)))])))
 
-; - Note: `name` is mapped to a set of the checked values.
-; get-fn: is passed the value of ()
+(comment
+  "Checkbox component. 
+   - The value of the checkbox is stored in a set. The set is stored in the 
+   app-db at the path `name`.
+   - `default-checked` is a boolean that determines whether the checkbox is
+   checked by default.
+   - `save-fn` is a function that takes the set of checked values and returns
+   a new set of checked values. By default it is a function that adds or
+   removes the value from the set when the checkbox is clicked.
+   - `get-fn` is a function that takes the set of checked values and returns
+   the value of the checkbox. By default it is a function that returns the
+   value if it is in the set.")
 (defmethod input :checkbox
   [{:keys [name default-checked save-fn get-fn value] :as attrs}]
   (let [name (make-vec name)
@@ -161,6 +171,11 @@
                      :checked (boolean (get-fn)))])))
 
 (defn select
+  "Select component, with common boilerplate. 
+   - The only mandatory attribute is `name`. The options are passed as a 
+   rest argument in the form of `[:option {:value \"value\"} \"label\"]`. 
+   - The `default-value` attribute can be used to set the default value. 
+   Otherwise the value of the first option will be used."
   [{:keys [name default-value] :as attrs} & options]
   (let [name (make-vec name),
         default-value (or default-value

@@ -83,6 +83,36 @@
                  :response-format (ajax/raw-response-format)
                  :on-success       [:set-docs]}}))
 
+(def priorities
+  [{:id :urgent :name "Urgent"}
+   {:id :high :name "High"}
+   {:id :medium :name "Medium"}
+   {:id :low :name "Low"}
+   {:id :dont-fix :name "Don't Fix"}])
+
+(def statuses
+  [{:id :pending :name "Pending"}
+   {:id :in-progress :name "In Progress"}
+   {:id :done :name "Done"}])
+
+(def labels
+  [{:id :bug :name "Bug"}
+   {:id :feature :name "Feature"}
+   {:id :chore :name "Chore"}])
+
+
+(def default-db
+  {:statuses/all statuses
+   :priorities/all priorities
+   :labels/all labels})
+
+(rf/reg-event-fx
+ :initialize-app!
+ base-interceptors
+ (fn [{:keys [db]} _]
+   {:db (merge db default-db)}))
+
+
 (rf/reg-event-db
  :common/set-error
  (fn [db [_ error]]

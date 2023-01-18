@@ -21,4 +21,5 @@
 (defn init! []
   (router/start-router!)
   (ajax/load-interceptors!)
+  (rf/dispatch-sync [:initialize-app!])
   (mount-components))
