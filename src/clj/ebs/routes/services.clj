@@ -13,6 +13,9 @@
    [ebs.middleware.exception :as exception]
    [ebs.routes.services.project :as project]
    [ebs.routes.services.story :as story]
+   ebs.routes.services.label
+   ebs.routes.services.priority
+   ebs.routes.services.status
    [ring.util.http-response :refer :all]
    [reitit.core :as r]))
 
