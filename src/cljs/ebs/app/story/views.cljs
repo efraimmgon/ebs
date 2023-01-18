@@ -31,12 +31,13 @@
 (defn stories-ui
   "Component to display the stories."
   []
-  (r/with-let [stories (rf/subscribe [:stories/all])]
+  (r/with-let [project (rf/subscribe [:project/active])
+               stories (rf/subscribe [:stories/all])]
     [views/base-ui
      [:div
       [:h1 "Stories"
-       [:button.btn.btn-primary.float-right
-        {:on-click #(rf/dispatch [:navigate! :story/new])}
+       [:a.btn.btn-primary.float-right
+        {:href (rfe/href :story/new {:project-id (:id @project)})}
         "New Story"]]]
      (if (seq @stories)
        [:div
@@ -59,49 +60,52 @@
 
        :body
        [:div
-        [c/form-group
-         "Title"
-         [forms/input
-          {:type :text
-           :name (conj path :title)
-           :placehodler "Title"
-           :class "form-control"}]]
-        [c/form-group
-         "Description"
-         [forms/textarea
-          {:name (conj path :description)
-           :placeholder "Description"
-           :class "form-control"}]]
-        [c/form-group
-         "Status"
-         (into
-          [forms/select
-           {:name (conj path :status)
-            :class "form-control"}]
-          (doall
-           (for [status (rf/subscribe [:statuses/all])]
-             ^{:key (:id status)}
-             [:option {:value (:id status)} (:name status)])))]
-        [c/form-group
-         "Labels"
-         (doall
-          (for [label (rf/subscribe [:labels/all])]
-            ^{:key (:id label)}
-            [forms/checkbox-input
-             {:name (conj path :labels)
-              :label (:name label)
-              :value (:id label)}]))]
-        [c/form-group
-         "Priority"
-         (into
-          [forms/select
-           {:name (conj path :priority)}
-           :class "form-control"
-           [:option {:value ""} "Select a priority"]]
-          (doall
-           (for [priority (rf/subscribe [:priorities/all])]
-             ^{:key (:id priority)}
-             [:option {:value (:id priority)} (:title priority)])))]]
+        [:div.row
+         [:div.col-md-9
+          [c/form-group
+           "Title"
+           [forms/input
+            {:type :text
+             :name (conj path :title)
+             :placehodler "Title"
+             :class "form-control"}]]
+          [c/form-group
+           "Description"
+           [forms/textarea
+            {:name (conj path :description)
+             :placeholder "Description"
+             :class "form-control"
+             :rows 5}]]]
+         [:div.col-md-3
+          [c/form-group
+           "Status"
+           (into
+            [forms/select
+             {:name (conj path :status)
+              :class "form-control"}]
+            (doall
+             (for [status @(rf/subscribe [:statuses/all])]
+               ^{:key (:id status)}
+               [:option {:value (:id status)} (:name status)])))]
+          [c/form-group
+           "Priority"
+           (into
+            [forms/select
+             {:name (conj path :priority)
+              :class "form-control"}]
+            (doall
+             (for [priority @(rf/subscribe [:priorities/all])]
+               ^{:key (:id priority)}
+               [:option {:value (:id priority)} (:name priority)])))]
+          [c/form-group
+           "Labels"
+           (doall
+            (for [label @(rf/subscribe [:labels/all])]
+              ^{:key (:id label)}
+              [forms/checkbox-comp
+               {:name (conj path :labels)
+                :label (:name label)
+                :value (:id label)}]))]]]]
 
        :footer
        [:div

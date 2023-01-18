@@ -24,26 +24,30 @@
       {:name :project/new
        :view #'project/new-project-ui}]
      ["/{project-id}"
-      {:parameters {:path {:project-id int?}}}
+      {:parameters {:path {:project-id int?}}
+       :controllers [{:parameters {:path [:project-id]}
+                      :start (fn [path]
+                               (rf/dispatch
+                                [:project/load-project
+                                 (js/parseInt
+                                  (get-in path [:path :project-id]))]))}]}
       ["/edit"
        {:name :project/edit
-        :view #'project/edit-project-ui
-        :controllers [{:parameters {:path [:project-id]}
-                       :start (fn [path]
-                                (prn :path path)
-                                (rf/dispatch
-                                 [:project/load-project
-                                  (js/parseInt
-                                   (get-in path [:path :project-id]))]))}]}]
+        :view #'project/edit-project-ui}]
+      ; "/project/{project-id}/stories"
       ["/stories"
-       {:name :project/view-stories
-        :view #'story/stories-ui
-        :controllers [{:parameters {:path [:project-id]}
-                       :start (fn [path]
-                                (rf/dispatch
-                                 [:stories/load
-                                  (js/parseInt
-                                   (get-in path [:path :project-id]))]))}]}]]]]))
+       [""
+        {:name :project/view-stories
+         :view #'story/stories-ui
+         :controllers [{:parameters {:path [:project-id]}
+                        :start (fn [path]
+                                 (rf/dispatch
+                                  [:stories/load
+                                   (js/parseInt
+                                    (get-in path [:path :project-id]))]))}]}]
+       ["/new"
+        {:name :story/new
+         :view #'story/new-story-ui}]]]]]))
 
 (defn start-router! []
   (rfe/start!

@@ -192,7 +192,7 @@
                        :value (value-attr (get-stored-val name)))]
        options))))
 
-(defn radio-input
+(defn radio-comp
   "Radio component, with common boilerplate."
   [{:keys [class label] :as attrs}]
   [:div.form-check.form-check-radio
@@ -203,7 +203,7 @@
     label
     [:span.circle>span.check]]])
 
-(defn checkbox-input
+(defn checkbox-comp
   "Checkbox component, with common boilerplate."
   [{:keys [class label] :as attrs}]
   [:div.form-check

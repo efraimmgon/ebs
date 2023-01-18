@@ -15,5 +15,4 @@
       :keywords? true})
    nil))
 
-; reg-sub for :stories/all
 (rf/reg-sub :stories/all events/query)

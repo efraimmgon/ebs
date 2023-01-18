@@ -83,6 +83,7 @@
                  :response-format (ajax/raw-response-format)
                  :on-success       [:set-docs]}}))
 
+; TODO: fetch data from the server.
 (def priorities
   [{:id :urgent :name "Urgent"}
    {:id :high :name "High"}
@@ -157,3 +158,6 @@
 
 (rf/reg-sub :common/error query)
 (rf/reg-sub :identity query)
+(rf/reg-sub :statuses/all query)
+(rf/reg-sub :priorities/all query)
+(rf/reg-sub :labels/all query)
