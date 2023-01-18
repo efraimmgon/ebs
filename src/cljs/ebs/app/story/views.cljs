@@ -3,6 +3,7 @@
    [reagent.core :as r]
    [re-frame.core :as rf]
    [ebs.utils.components :as c]
+   [ebs.utils.forms :as forms]
    [ebs.utils.views :as views]
    [reitit.frontend.easy :as rfe]
    ebs.app.story.handlers))
@@ -44,3 +45,64 @@
            [:div [story-card story]
             [:hr]]))]
        [:div "There are no stories yet"])]))
+
+(defn new-story-ui
+  "Component to create a new story."
+  []
+  ;; TODO: assoc project-id to the new story
+  (r/with-let [path [:story/new]
+               fields (rf/subscribe [:query path])]
+    [views/base-ui
+     [c/card
+      {:title "New Story"
+
+       :body
+       [:div
+        [c/form-group
+         "Title"
+         [forms/input
+          {:type :text
+           :name (conj path :title)
+           :placehodler "Title"
+           :class "form-control"}]]
+        [c/form-group 
+         "Description"
+         [forms/textarea
+          {:name (conj path :description)
+           :placeholder "Description"
+           :class "form-control"}]]]
+        [c/form-group
+         [:label "Status"]
+         [:select.form-control
+          {:value (get-in @fields [:status])
+           :on-change #(rf/dispatch [:assoc-in (conj path :status) (-> % .-target .-value)])}
+          [:option {:value ""} "Select a status"]
+          (doall
+           (for [status (rf/subscribe [:statuses/all])]
+             ^{:key (:id status)}
+             [:option {:value (:id status)} (:title status)]))]]
+        [c/form-group
+         [:label "Type"]
+         [:select.form-control
+          {:value (get-in @fields [:type])
+           :on-change #(rf/dispatch [:assoc-in (conj path :type) (-> % .-target .-value)])}
+          [:option {:value ""} "Select a type"]
+          (doall
+           (for [type (rf/subscribe [:types/all])]
+             ^{:key (:id type)}
+             [:option {:value (:id type)} (:title type)]))]]
+        [c/form-group
+         [:label "Priority"]
+         [:select.form-control
+          {:value (get-in @fields [:priority])}
+          :on-change #(rf/dispatch [:assoc-in (conj path :priority) (-> % .-target .-value)])
+          [:option {:value ""} "Select a priority"]
+          (doall
+           (for [priority (rf/subscribe [:priorities/all])]
+             ^{:key (:id priority)}
+             [:option {:value (:id priority)} (:title priority)]))]]]
+       :footer
+       [:div
+        [:button.btn.btn-primary
+         {:on-click #(rf/dispatch [:story/create @fields])}
+         "Create"]]}]]))

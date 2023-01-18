@@ -67,11 +67,7 @@
            :responses {200 {:body :story/stories}}
            :handler story/get-project-stories}
      :post {:summary "Create a story record in the db."
-            :parameters {:body (s/keys :req-un [:story/project_id
-                                                :story/title]
-                                       :opt-un [:story/description
-                                                :story/due_date
-                                                :story/priority])}
+            :parameters {:body :story/NewStory}
             :responses {200 {:body :story/Story}}
             :handler (fn [{:keys [parameters]}]
                        (story/create-story!
@@ -86,14 +82,10 @@
                        (story/get-story
                         (get-in parameters [:path :story-id])))}
       :put {:summary "Update a story record with params."
-            :parameters {:body (s/keys :req-un [:story/title]
-                                       :opt-un [:story/description
-                                                :story/due_date
-                                                :story/priority])}
+            :parameters {:body :story/UpdateStory}
             :responses {200 {:body :story/Story}}
             :handler (fn [{:keys [parameters]}]
                        (story/update-story!
-                        (get-in parameters [:path :story-id])
                         (:body parameters)))}
       :delete {:summary "Delete a story record."
                :responses {200 {:body :story/Story}}
