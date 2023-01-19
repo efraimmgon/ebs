@@ -9,35 +9,41 @@
    [reitit.frontend.easy :as rfe]
    ebs.app.story.handlers))
 
-(defn story-card
+(defn story-list-item
   "Component to display a story."
   [{:keys [id project_id title description]}]
-  ; when the user clicks the story card, it should navigate to the edit story page
   [:a.no-link-style
    {:href (rfe/href :story/edit {:project-id project_id :story-id id})}
-   [c/card
-    {:title title
-     :body [:p description]}]])
+   [:li.list-group-item
+    [:h4 title]
+    [:p description]]])
 
 (defn stories-ui
   "Component to display the stories."
   []
   (r/with-let [project (rf/subscribe [:project/active])
-               stories (rf/subscribe [:stories/all])]
+               pending (rf/subscribe [:stories/pending])
+               in-progress (rf/subscribe [:stories/in-progress])
+               completed (rf/subscribe [:stories/completed])]
     [views/base-ui
      [:div
       [:h1 "Stories"
        [:a.btn.btn-primary.float-right
         {:href (rfe/href :story/new {:project-id (:id @project)})}
         "New Story"]]]
-     (if (seq @stories)
-       [:div
-        (doall
-         (for [story @stories]
-           ^{:key (:id story)}
-           [:div [story-card story]
-            [:hr]]))]
-       [:div "There are no stories yet"])]))
+     [:div.row
+      (doall
+       (for [[stories title] [[pending "Pending"] [in-progress "In Progress"] [completed "Completed"]]]
+         [:div.col-md-4
+          (if (seq @stories)
+            [:div
+             [:h3 title]
+             [:ul.list-group
+              (doall
+               (for [story @stories]
+                 ^{:key (:id story)}
+                 [story-list-item story]))]]
+            [:div [:h3 title] [:p "No stories"]])]))]]))
 
 (defn new-story-ui
   "Component to create a new story."

@@ -10,19 +10,23 @@
  (fn [{:keys [db]} [stories]]
    (let [stories (map #(cond-> %
                          :labels (update :labels set))
-                      stories)]
-     {:db (assoc db :stories/all stories)})))
+                      stories)
+         stories (group-by :status stories)]
+     {:db (assoc db
+                 :stories/pending (get stories "pending")
+                 :stories/in-progress (get stories "in-progress")
+                 :stories/completed (get stories "completed"))})))
 
 (rf/reg-event-fx
  :stories/load
  events/base-interceptors
  (fn [_ [project-id]]
-   (ajax/GET (str "/api/projects/" project-id "/stories")
-     {:handler #(rf/dispatch [:stories/load-success %])
-      :error-handler #(rf/dispatch [:common/set-error %])
-      :response-format :json
-      :keywords? true})
-   nil))
+   {:http-xhrio {:method :get
+                 :uri (str "/api/projects/" project-id "/stories")
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :on-success [:stories/load-success]
+                 :on-failure [:common/set-error]}}))
 
 (rf/reg-event-fx
  :story/load-success
@@ -93,3 +97,6 @@
 ;;; Subscriptions
 
 (rf/reg-sub :stories/all events/query)
+(rf/reg-sub :stories/pending events/query)
+(rf/reg-sub :stories/in-progress events/query)
+(rf/reg-sub :stories/completed events/query)
