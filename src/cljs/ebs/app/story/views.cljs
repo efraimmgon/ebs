@@ -12,14 +12,12 @@
 (defn story-card
   "Component to display a story."
   [{:keys [id project_id title description]}]
-  [c/card
-   {:title title
-    :body [:p description]
-    :footer
-    [:div
-     [:a.btn.btn-warning
-      {:href (rfe/href :story/edit {:project-id project_id :story-id id})}
-      "Edit"] " "]}])
+  ; when the user clicks the story card, it should navigate to the edit story page
+  [:a.no-link-style
+   {:href (rfe/href :story/edit {:project-id project_id :story-id id})}
+   [c/card
+    {:title title
+     :body [:p description]}]])
 
 (defn stories-ui
   "Component to display the stories."

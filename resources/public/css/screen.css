@@ -12,3 +12,12 @@
   background-color: #000;
   opacity: 0.5;
 }
+
+.no-link-style {
+  color: inherit;
+  /* Removes the blue color */
+  text-decoration: none;
+  /* Removes the underline */
+  cursor: pointer;
+  /* Changes mouse pointer to "pointer" on hover */
+}
