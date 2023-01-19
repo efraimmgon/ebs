@@ -23,9 +23,9 @@
 (s/def :story/project_id int?)
 (s/def :story/title string?)
 (s/def :story/description string?)
-(s/def :story/status :status/Status)
-(s/def :story/labels (s/* :label/Label))
-(s/def :story/priority :priority/Priority)
+(s/def :story/status string?)
+(s/def :story/labels (s/* string?))
+(s/def :story/priority int?)
 (s/def :story/due_date inst?)
 (s/def :story/created_at inst?)
 (s/def :story/updated_at inst?)
@@ -80,7 +80,7 @@
   "Return all story records for a project."
   [project-id]
   (let [stories
-        (fsdb/select :story {:where #(= (:story/project_id %) project-id)})]
+        (fsdb/select :story {:where #(= (:project_id %) project-id)})]
     (response/ok
      (if (seq stories)
        stories
@@ -119,4 +119,6 @@
    (fsdb/delete! :story id)))
 
 (comment
-  (fsdb/create-table! :story))
+  (fsdb/create-table! :story)
+  (get-project-stories 5)
+  (get-stories nil))

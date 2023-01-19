@@ -68,7 +68,9 @@
    [""
     {:get {:summary "Return all story records."
            :responses {200 {:body :story/stories}}
-           :handler story/get-project-stories}
+           :handler (fn [{:keys [parameters]}]
+                      (story/get-project-stories
+                       (get-in parameters [:path :project-id])))}
      :post {:summary "Create a story record in the db."
             :parameters {:body :story/NewStory}
             :responses {200 {:body :story/Story}}

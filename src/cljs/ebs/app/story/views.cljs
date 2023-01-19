@@ -79,33 +79,33 @@
          [:div.col-md-3
           [c/form-group
            "Status"
-           (into
-            [forms/select
-             {:name (conj path :status)
-              :class "form-control"}]
+           [forms/select
+            {:name (conj path :status)
+             :default-value "pending"
+             :class "form-control"}
             (doall
              (for [status @(rf/subscribe [:statuses/all])]
-               ^{:key (:id status)}
-               [:option {:value (:id status)} (:name status)])))]
+               ^{:key status}
+               [:option {:value status} (clojure.string/capitalize status)]))]]
           [c/form-group
            "Priority"
-           (into
-            [forms/select
-             {:name (conj path :priority)
-              :class "form-control"}]
+           [forms/select
+            {:name (conj path :priority)
+             :class "form-control"}
             (doall
-             (for [priority @(rf/subscribe [:priorities/all])]
-               ^{:key (:id priority)}
-               [:option {:value (:id priority)} (:name priority)])))]
+             (into [[:option {:value ""} ""]]
+                   (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
+                     ^{:key id}
+                     [:option {:value id} name])))]]
           [c/form-group
            "Labels"
            (doall
             (for [label @(rf/subscribe [:labels/all])]
-              ^{:key (:id label)}
+              ^{:key label}
               [forms/checkbox-comp
                {:name (conj path :labels)
-                :label (:name label)
-                :value (:id label)}]))]]]]
+                :label (clojure.string/capitalize label)
+                :value label}]))]]]]
 
        :footer
        [:div

@@ -85,22 +85,17 @@
 
 ; TODO: fetch data from the server.
 (def priorities
-  [{:id :urgent :name "Urgent"}
-   {:id :high :name "High"}
-   {:id :medium :name "Medium"}
-   {:id :low :name "Low"}
-   {:id :dont-fix :name "Don't Fix"}])
+  [{:id 1 :name "urgent"}
+   {:id 2 :name "high"}
+   {:id 3 :name "medium"}
+   {:id 4 :name "low"}
+   {:id 5 :name "don't fix"}])
 
 (def statuses
-  [{:id :pending :name "Pending"}
-   {:id :in-progress :name "In Progress"}
-   {:id :done :name "Done"}])
+  ["pending" "in progress" "complete"])
 
 (def labels
-  [{:id :bug :name "Bug"}
-   {:id :feature :name "Feature"}
-   {:id :chore :name "Chore"}])
-
+  ["bug" "feature" "chore"])
 
 (def default-db
   {:statuses/all statuses
