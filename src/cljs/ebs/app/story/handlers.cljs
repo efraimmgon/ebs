@@ -5,15 +5,43 @@
    [re-frame.core :as rf]))
 
 (rf/reg-event-fx
+ :stories/load-success
+ events/base-interceptors
+ (fn [{:keys [db]} [stories]]
+   (let [stories (map #(cond-> %
+                         :labels (update :labels set))
+                      stories)]
+     {:db (assoc db :stories/all stories)})))
+
+(rf/reg-event-fx
  :stories/load
  events/base-interceptors
  (fn [_ [project-id]]
    (ajax/GET (str "/api/projects/" project-id "/stories")
-     {:handler #(rf/dispatch [:assoc-in [:stories/all] %])
+     {:handler #(rf/dispatch [:stories/load-success %])
       :error-handler #(rf/dispatch [:common/set-error %])
       :response-format :json
       :keywords? true})
    nil))
+
+(rf/reg-event-fx
+ :story/load-success
+ events/base-interceptors
+ (fn [{:keys [db]} [story]]
+   (let [story (cond-> story
+                 :labels (update :labels set))]
+     {:db (assoc db :story/active story)})))
+
+(rf/reg-event-fx
+ :story/load
+ events/base-interceptors
+ (fn [_ [project-id story-id]]
+   {:http-xhrio {:method :get
+                 :uri (str "/api/projects/" project-id "/stories/" story-id)
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :on-success [:story/load-success]
+                 :on-failure [:common/set-error]}}))
 
 (rf/reg-event-fx
  :story/create-success
@@ -37,5 +65,31 @@
                    :on-success [:story/create-success]
                    :on-failure [:common/set-error]}})))
 
+
+(rf/reg-event-fx
+ :story/update-success
+ events/base-interceptors
+ (fn [{:keys [db]} [story]]
+   {:dispatch [:navigate! :project/view-stories
+               {:project-id (:project_id story)}]
+    :db (dissoc db :story/active)}))
+
+(rf/reg-event-fx
+ :story/update
+ events/base-interceptors
+ (fn [{:keys [db]} [story]]
+   (let [project-id (get-in db [:project/active :id])
+         story-id (get-in db [:story/active :id])]
+     {:http-xhrio {:method :put
+                   :uri (str "/api/projects/" project-id "/stories/" story-id)
+                   :format (ajax/json-request-format)
+                   :response-format (ajax/json-response-format {:keywords? true})
+                   :params (assoc story :project_id project-id)
+                   :on-success [:story/update-success]
+                   :on-failure [:common/set-error]}})))
+
+
+;;; ---------------------------------------------------------------------------
+;;; Subscriptions
 
 (rf/reg-sub :stories/all events/query)

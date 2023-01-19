@@ -150,9 +150,13 @@
   [{:keys [name default-checked save-fn get-fn value] :as attrs}]
   (let [name (make-vec name)
         f (fn [acc]
-            (if (get acc value)
-              (disj acc value)
-              ((fnil conj #{}) acc value)))
+            (let [acc (cond (empty? acc) #{}
+                            (set? acc) acc
+                            (coll? acc) (set acc)
+                            :else #{acc})]
+              (if (get acc value)
+                (disj acc value)
+                (conj acc value))))
         save-fn (or save-fn f)
         get-fn (or (and get-fn #(get-fn (get-stored-val name)))
                    #(get-stored-val (conj name value)))

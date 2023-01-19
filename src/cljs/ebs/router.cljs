@@ -47,7 +47,21 @@
                                     (get-in path [:path :project-id]))]))}]}]
        ["/new"
         {:name :story/new
-         :view #'story/new-story-ui}]]]]]))
+         :view #'story/new-story-ui}]
+       ["/{story-id}"
+        {:parameters {:path {:story-id int?}}
+         :controllers [{:parameters {:path [:project-id :story-id]}
+                        :start (fn [path]
+                                 (rf/dispatch
+                                  [:story/load
+                                   (js/parseInt
+                                    (get-in path [:path :project-id]))
+                                   (js/parseInt
+                                    (get-in path [:path :story-id]))]))}]}
+        ["/edit"
+         {:name :story/edit
+          :view #'story/edit-story-ui}]]]]]]))
+
 
 (defn start-router! []
   (rfe/start!
