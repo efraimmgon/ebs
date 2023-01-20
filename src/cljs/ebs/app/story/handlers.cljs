@@ -10,12 +10,8 @@
  (fn [{:keys [db]} [stories]]
    (let [stories (map #(cond-> %
                          :labels (update :labels set))
-                      stories)
-         stories (group-by :status stories)]
-     {:db (assoc db
-                 :stories/pending (get stories "pending")
-                 :stories/in-progress (get stories "in-progress")
-                 :stories/completed (get stories "completed"))})))
+                      stories)]
+     {:db (assoc db :stories/all stories)})))
 
 (rf/reg-event-fx
  :stories/load
@@ -97,6 +93,23 @@
 ;;; Subscriptions
 
 (rf/reg-sub :stories/all events/query)
-(rf/reg-sub :stories/pending events/query)
-(rf/reg-sub :stories/in-progress events/query)
-(rf/reg-sub :stories/completed events/query)
+(rf/reg-sub :story/active events/query)
+(rf/reg-sub :story/new events/query)
+
+(rf/reg-sub
+ :stories/pending
+ :<- [:stories/all]
+ (fn [stories]
+   (filter #(= "pending" (:status %)) stories)))
+
+(rf/reg-sub
+ :stories/in-progress
+ :<- [:stories/all]
+ (fn [stories]
+   (filter #(= "in progress" (:status %)) stories)))
+
+(rf/reg-sub
+ :stories/completed
+ :<- [:stories/all]
+ (fn [stories]
+   (filter #(= "completed" (:status %)) stories)))

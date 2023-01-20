@@ -34,6 +34,7 @@
      [:div.row
       (doall
        (for [[stories title] [[pending "Pending"] [in-progress "In Progress"] [completed "Completed"]]]
+         ^{:key title}
          [:div.col-md-4
           (if (seq @stories)
             [:div
@@ -43,14 +44,14 @@
                (for [story @stories]
                  ^{:key (:id story)}
                  [story-list-item story]))]]
-            [:div [:h3 title] [:p "No stories"]])]))]]))
+            [:div [:h3 title] [::p "-"]])]))]]))
 
 (defn new-story-ui
   "Component to create a new story."
   []
   ;; TODO: assoc project-id to the new story
   (r/with-let [path [:story/new]
-               fields (rf/subscribe [:query path])]
+               fields (rf/subscribe path)]
     [views/base-ui
      [c/card
       {:title "New Story"
@@ -115,7 +116,7 @@
   "Component to edit a story."
   []
   (r/with-let [path [:story/active]
-               story (rf/subscribe [:query path])]
+               story (rf/subscribe path)]
     [views/base-ui
      [c/card
       {:title "Edit Story"
