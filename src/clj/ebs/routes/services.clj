@@ -19,6 +19,13 @@
    [ring.util.http-response :refer :all]
    [reitit.core :as r]))
 
+(s/def :result/result keyword?)
+(s/def :result/message (or string? keyword?))
+
+(s/def :result/Result
+  (s/keys :req-un [:result/result]
+          :opt-un [:result/message]))
+
 ;;; -----------------------------------------------------------------------
 ;;; Utils
 
@@ -93,7 +100,7 @@
                        (story/update-story!
                         (:body parameters)))}
       :delete {:summary "Delete a story record."
-               :responses {200 {:body :story/Story}}
+               :responses {200 {:body :result/Result}}
                :handler (fn [{:keys [parameters]}]
                           (story/delete-story!
                            (get-in parameters [:path :story-id])))}}]]])

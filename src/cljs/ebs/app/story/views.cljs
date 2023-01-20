@@ -11,12 +11,11 @@
 
 (defn story-list-item
   "Component to display a story."
-  [{:keys [id project_id title description]}]
+  [{:keys [id project_id title]}]
   [:a.no-link-style
    {:href (rfe/href :story/edit {:project-id project_id :story-id id})}
    [:li.list-group-item
-    [:h4 title]
-    [:p description]]])
+    [:p title]]])
 
 (defn stories-ui
   "Component to display the stories."
@@ -119,7 +118,12 @@
                story (rf/subscribe path)]
     [views/base-ui
      [c/card
-      {:title "Edit Story"
+      {:title
+       [:span (:title @story)
+        [:button.btn.btn-danger.float-right
+         {:on-click #(rf/dispatch
+                      [:story/delete (:project_id @story) (:id @story)])}
+         "Delete"]]
 
        :body
        [:div

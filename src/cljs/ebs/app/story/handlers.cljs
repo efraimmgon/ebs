@@ -88,6 +88,25 @@
                    :on-success [:story/update-success]
                    :on-failure [:common/set-error]}})))
 
+(rf/reg-event-fx
+ :story/delete-success
+ events/base-interceptors
+ (fn [{:keys [db]} _]
+   {:dispatch [:navigate! :project/view-stories
+               {:project-id (get-in db [:project/active :id])}]
+    :db (dissoc db :story/active)}))
+
+(rf/reg-event-fx
+ :story/delete
+ events/base-interceptors
+ (fn [_ [project-id story-id]]
+   {:http-xhrio {:method :delete
+                 :uri (str "/api/projects/" project-id "/stories/" story-id)
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :on-success [:story/delete-success]
+                 :on-failure [:common/set-error]}}))
+
 
 ;;; ---------------------------------------------------------------------------
 ;;; Subscriptions

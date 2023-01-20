@@ -115,8 +115,8 @@
 (defn delete-story!
   "Delete a story record in the db. Returns the deleted story."
   [id]
-  (response/ok
-   (fsdb/delete! :story id)))
+  (fsdb/delete! :story id)
+  (response/ok {:result :ok}))
 
 (comment
   (fsdb/create-table! :story)
