@@ -7,13 +7,15 @@
 ;;; ---------------------------------------------------------------------------
 ;;; Events
 
+; (1) The checkbox input expects a set of labels, but the API returns a vector.
 (rf/reg-event-fx
  :stories/load-success
  events/base-interceptors
  (fn [{:keys [db]} [stories]]
-   (let [stories (map #(cond-> %
-                         :labels (update :labels set))
-                      stories)]
+   (let [stories (->> stories
+                      (map #(cond-> %
+                              :labels (update :labels set))) ; (1)
+                      (sort-by (juxt :priority :created_at) <))]
      {:db (assoc db :stories/all stories)})))
 
 (rf/reg-event-fx
@@ -134,4 +136,4 @@
  :stories/completed
  :<- [:stories/all]
  (fn [stories]
-   (filter #(= "completed" (:status %)) stories)))
+   (filter #(= "complete" (:status %)) stories)))

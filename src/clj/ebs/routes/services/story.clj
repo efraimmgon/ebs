@@ -121,4 +121,4 @@
 (comment
   (fsdb/create-table! :story)
   (get-project-stories 5)
-  (get-stories nil))
+  (fsdb/get-all :story))

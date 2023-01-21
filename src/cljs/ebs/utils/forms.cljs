@@ -178,12 +178,15 @@
   "Select component, with common boilerplate. 
    - The only mandatory attribute is `name`. The options are passed as a 
    rest argument in the form of `[:option {:value \"value\"} \"label\"]`. 
-   - The `default-value` attribute can be used to set the default value."
-  [{:keys [name default-value] :as attrs} options]
+   - The `default-value` attribute can be used to set the default value.
+   - The `save-fn` attribute can be used to transform the value before it is
+   stored in the app-db."
+  [{:keys [name default-value save-fn] :as attrs} options]
   (let [name (make-vec name),
+        f (or save-fn identity)
         edited-attrs
         (merge {:on-change (make-handler->set!
-                            name (comp read-string* target-value))}
+                            name (comp f target-value))}
                (clean-attrs attrs))]
     (fn []
       (maybe-set-default!
