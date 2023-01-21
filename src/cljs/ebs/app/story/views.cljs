@@ -9,13 +9,27 @@
    [reitit.frontend.easy :as rfe]
    ebs.app.story.handlers))
 
+; TODO: move this to a sub
+(def label->class
+  {"bug" "badge-danger"
+   "feature" "badge-success"
+   "chore" "badge-info"})
+
 (defn story-list-item
   "Component to display a story."
-  [{:keys [id project_id title]}]
+  [{:keys [id project_id title priority labels]}]
   [:a.no-link-style
    {:href (rfe/href :story/edit {:project-id project_id :story-id id})}
    [:li.list-group-item
-    [:p title]]])
+    [:p
+     [:small.text-muted (str "[" priority "]")] " "
+     title " "
+     (doall
+      (for [label labels]
+        ^{:key label}
+        [:span
+         [:span.badge {:class (label->class label)} label]
+         " "]))]]])
 
 (defn stories-ui
   "Component to display the stories."
@@ -23,7 +37,7 @@
   (r/with-let [project (rf/subscribe [:project/active])
                pending (rf/subscribe [:stories/pending])
                in-progress (rf/subscribe [:stories/in-progress])
-               completed (rf/subscribe [:stories/completed])]
+               complete (rf/subscribe [:stories/complete])]
     [views/base-ui
      [:div
       [:h1 "Stories"
@@ -32,7 +46,7 @@
         "New Story"]]]
      [:div.row
       (doall
-       (for [[stories title] [[pending "Pending"] [in-progress "In Progress"] [completed "Completed"]]]
+       (for [[stories title] [[pending "Pending"] [in-progress "In Progress"] [complete "Complete"]]]
          ^{:key title}
          [:div.col-md-4
           (if (seq @stories)
@@ -87,7 +101,8 @@
            "Priority"
            [forms/select
             {:name (conj path :priority)
-             :class "form-control"}
+             :class "form-control"
+             :save-fn #(js/parseInt %)}
             (doall
              (into [[:option {:value ""} ""]]
                    (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
@@ -156,7 +171,8 @@
            "Priority"
            [forms/select
             {:name (conj path :priority)
-             :class "form-control"}
+             :class "form-control"
+             :save-fn #(js/parseInt %)}
             (doall
              (into [[:option {:value ""} ""]]
                    (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]

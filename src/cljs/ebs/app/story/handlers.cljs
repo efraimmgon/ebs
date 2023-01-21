@@ -133,7 +133,7 @@
    (filter #(= "in progress" (:status %)) stories)))
 
 (rf/reg-sub
- :stories/completed
+ :stories/complete
  :<- [:stories/all]
  (fn [stories]
    (filter #(= "complete" (:status %)) stories)))
