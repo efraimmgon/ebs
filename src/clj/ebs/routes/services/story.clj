@@ -78,9 +78,9 @@
 
 (defn get-project-stories
   "Return all story records for a project."
-  [project-id]
+  [project_id]
   (let [stories
-        (fsdb/select :story {:where #(= (:project_id %) project-id)})]
+        (fsdb/select :story {:where #(= (:project_id %) project_id)})]
     (response/ok
      (if (seq stories)
        stories
