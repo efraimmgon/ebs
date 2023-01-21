@@ -48,7 +48,6 @@
 (defn new-story-ui
   "Component to create a new story."
   []
-  ;; TODO: assoc project-id to the new story
   (r/with-let [path [:story/new]
                fields (rf/subscribe path)]
     [views/base-ui
@@ -110,7 +109,6 @@
          {:on-click #(rf/dispatch [:story/create @fields])}
          "Create"]]}]]))
 
-; edit-story-ui (same ui as new-story-ui, just chage the title and the button label)
 (defn edit-story-ui
   "Component to edit a story."
   []

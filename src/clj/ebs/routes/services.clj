@@ -128,13 +128,13 @@
                        (project/get-project
                         (get-in parameters [:path :project-id])))}
       :put {:summary "Update a project record with params."
-            :parameters {:body (s/keys :req-un [:project/title]
+            :parameters {:body (s/keys :req-un [:project/id
+                                                :project/title]
                                        :opt-un [:project/description])}
             :responses {200 {:body :project/Project}}
             :handler (fn [{:keys [parameters]}]
                        (project/update-project!
-                        (assoc (:body parameters)
-                               :id (get-in parameters [:path :project-id]))))}
+                        (:body parameters)))}
       :delete {:summary "Delete a project record by id."
                :responses {200 {:body :result/Result}}
                :handler (fn [{:keys [parameters]}]

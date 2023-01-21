@@ -4,6 +4,9 @@
    [ebs.utils.events :as events]
    [re-frame.core :as rf]))
 
+;;; ---------------------------------------------------------------------------
+;;; Events
+
 (rf/reg-event-fx
  :stories/load-success
  events/base-interceptors

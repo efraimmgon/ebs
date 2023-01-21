@@ -18,7 +18,7 @@
   (reitit/router
    [["/" {:name        :home
           :view        #'project/projects-ui
-          :controllers [{:start (fn [_] (rf/dispatch [:projects/fetch]))}]}]
+          :controllers [{:start (fn [_] (rf/dispatch [:projects/load]))}]}]
     ["/project"
      ["/new"
       {:name :project/new

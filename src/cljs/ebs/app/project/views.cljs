@@ -50,7 +50,7 @@
   "Component to create a new project."
   []
   (r/with-let [path [:project/new]
-               fields (rf/subscribe [:query path])]
+               fields (rf/subscribe path)]
     [views/base-ui
      [c/card
       {:title "New Project"
@@ -80,7 +80,7 @@
   "Component to edit a project."
   []
   (r/with-let [path [:project/active]
-               fields (rf/subscribe [:query path])]
+               fields (rf/subscribe path)]
     [views/base-ui
      [c/card
       ; next to the title there should be a button to delete the project
