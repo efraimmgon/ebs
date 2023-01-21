@@ -4,6 +4,7 @@
    [reagent.core :as r]
    [re-frame.core :as rf]
    [ebs.utils.components :as c]
+   [ebs.utils.events :as events]
    [ebs.utils.forms :as forms]
    [ebs.utils.views :as views]
    [reitit.frontend.easy :as rfe]
@@ -38,25 +39,36 @@
                pending (rf/subscribe [:stories/pending])
                in-progress (rf/subscribe [:stories/in-progress])
                complete (rf/subscribe [:stories/complete])]
+
     [views/base-ui
      [:div
       [:h1 "Stories"
-       [:a.btn.btn-primary.float-right
+       [:a.btn.btn-light.float-right
         {:href (rfe/href :story/new {:project-id (:id @project)})}
         "New Story"]]]
      [:div.row
       (doall
-       (for [[stories title] [[pending "Pending"] [in-progress "In Progress"] [complete "Complete"]]]
+       (for [[stories title] [[pending "pending"]
+                              [in-progress "in progress"]
+                              [complete "complete"]]]
          ^{:key title}
          [:div.col-md-4
           (if (seq @stories)
             [:div
-             [:h3 title]
+             ; A button next to the title to create a new story for this status.
+             [:h3 (clojure.string/capitalize title)
+              [:button.btn.btn-light.float-right
+               {:on-click #(events/dispatch-n
+                            [[:navigate! :story/new
+                              {:project-id (:id @project)}]
+                             [:assoc-in [:story/new :status] title]])}
+               "Add New"]]
              [:ul.list-group
               (doall
                (for [story @stories]
                  ^{:key (:id story)}
                  [story-list-item story]))]]
+
             [:div [:h3 title] [::p "-"]])]))]]))
 
 (defn new-story-ui
