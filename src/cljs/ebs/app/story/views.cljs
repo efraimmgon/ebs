@@ -92,10 +92,6 @@
                ^{:key (:id story)}
                [story-list-item story])])]))]]))
 
-; story-ui, containing the a template for the story form to avoid the duplication
-; we see in new-story-ui and edit-story-ui, so that we can use it in both places.
-; It should take a title and footer as arguments, and the body should be the
-; form itself.
 (defn story-ui
   "Component to display the story form."
   [{:keys [title footer path]}]
@@ -162,7 +158,9 @@
                new-story (rf/subscribe path)]
     [story-ui
      {:title "New Story"
+
       :path path
+
       :footer
       [:div
        [:button.btn.btn-primary
@@ -172,137 +170,21 @@
         {:href (rfe/href :project/view-stories {:project-id (:id @project)})}
         "Cancel"]]}]))
 
-#_(defn new-story-ui
-    "Component to create a new story."
-    []
-    (r/with-let [path [:story/new]
-                 fields (rf/subscribe path)]
-      [views/base-ui
-       [c/card
-        {:title "New Story"
-
-         :body
-         [:div
-          [:div.row
-           [:div.col-md-9
-            [c/form-group
-             "Title"
-             [forms/input
-              {:type :text
-               :name (conj path :title)
-               :placehodler "Title"
-               :class "form-control"}]]
-            [c/form-group
-             "Description"
-             [forms/textarea
-              {:name (conj path :description)
-               :placeholder "Description"
-               :class "form-control"
-               :rows 5}]]]
-           [:div.col-md-3
-            [c/form-group
-             "Status"
-             [forms/select
-              {:name (conj path :status)
-               :default-value "pending"
-               :class "form-control"}
-              (doall
-               (for [status @(rf/subscribe [:statuses/all])]
-                 ^{:key status}
-                 [:option {:value status} (clojure.string/capitalize status)]))]]
-            [c/form-group
-             "Priority"
-             [forms/select
-              {:name (conj path :priority)
-               :class "form-control"
-               :save-fn #(js/parseInt %)}
-              (doall
-               (into [[:option {:value ""} ""]]
-                     (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
-                       ^{:key id}
-                       [:option {:value id} name])))]]
-            [c/form-group
-             "Labels"
-             (doall
-              (for [label @(rf/subscribe [:labels/all])]
-                ^{:key label}
-                [forms/checkbox-comp
-                 {:name (conj path :labels)
-                  :label (clojure.string/capitalize label)
-                  :value label}]))]]]]
-
-         :footer
-         [:div
-          [:button.btn.btn-primary
-           {:on-click #(rf/dispatch [:story/create @fields])}
-           "Create"]]}]]))
-
 (defn edit-story-ui
   "Component to edit a story."
   []
   (r/with-let [path [:story/active]
                story (rf/subscribe path)]
-    [views/base-ui
-     [c/card
-      {:title
-       [:span (:title @story)
-        [:button.btn.btn-danger.float-right
-         {:on-click #(rf/dispatch
-                      [:story/delete (:project_id @story) (:id @story)])}
-         "Delete"]]
+    [story-ui
+     {:title "Edit Story"
 
-       :body
-       [:div
-        [:div.row
-         [:div.col-md-9
-          [c/form-group
-           "Title"
-           [forms/input
-            {:type :text
-             :name (conj path :title)
-             :placehodler "Title"
-             :class "form-control"}]]
-          [c/form-group
-           "Description"
-           [forms/textarea
-            {:name (conj path :description)
-             :placeholder "Description"
-             :class "form-control"
-             :rows 5}]]]
-         [:div.col-md-3
-          [c/form-group
-           "Status"
-           [forms/select
-            {:name (conj path :status)
-             :default-value "pending"
-             :class "form-control"}
-            (doall
-             (for [status @(rf/subscribe [:statuses/all])]
-               ^{:key status}
-               [:option {:value status} (clojure.string/capitalize status)]))]]
-          [c/form-group
-           "Priority"
-           [forms/select
-            {:name (conj path :priority)
-             :class "form-control"
-             :save-fn #(js/parseInt %)}
-            (doall
-             (into [[:option {:value ""} ""]]
-                   (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
-                     ^{:key id}
-                     [:option {:value id} name])))]]
-          [c/form-group
-           "Labels"
-           (doall
-            (for [label @(rf/subscribe [:labels/all])]
-              ^{:key label}
-              [forms/checkbox-comp
-               {:name (conj path :labels)
-                :label (clojure.string/capitalize label)
-                :value label}]))]]]]
+      :path path
 
-       :footer
-       [:div
-        [:button.btn.btn-primary
-         {:on-click #(rf/dispatch [:story/update @story])}
-         "Update"]]}]]))
+      :footer
+      [:div
+       [:button.btn.btn-primary
+        {:on-click #(rf/dispatch [:story/update @story])}
+        "Update"]
+       [:a.btn.btn-secondary.ml-2
+        {:href (rfe/href :project/view-stories {:project-id (:project_id @story)})}
+        "Cancel"]]}]))

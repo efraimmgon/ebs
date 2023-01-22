@@ -22,10 +22,7 @@
       "Open"] " "
      [:a.btn.btn-warning
       {:href (rfe/href :project/edit {:project-id id})}
-      "Edit"] " "
-     [:button.btn.btn-light
-      {:on-click #(rf/dispatch [:project/archive id])}
-      "Archive"]]}])
+      "Edit"] " "]}])
 
 (defn projects-ui
   "Component to display the projects."
@@ -46,67 +43,65 @@
             [:hr]]))]
        [:div "There are no projects yet"])]))
 
+(defn project-ui
+  "Component to display a project."
+  [{:keys [path title footer]}]
+  [views/base-ui
+   [c/card
+    {:title title
+
+     :body
+     [:div
+      [c/form-group
+       "Title"
+       [forms/input
+        {:type "text"
+         :name (conj path :title)
+         :placeholder "Title"
+         :class "form-control"}]]
+      [c/form-group
+       "Description"
+       [forms/textarea
+        {:name (conj path :description)
+         :placeholder "Description"
+         :class "form-control"}]]]
+
+     :footer footer}]])
+
 (defn new-project-ui
   "Component to create a new project."
   []
   (r/with-let [path [:project/new]
-               fields (rf/subscribe path)]
-    [views/base-ui
-     [c/card
-      {:title "New Project"
+               new-project (rf/subscribe path)]
+    [project-ui
+     {:path path
 
-       :body
-       [:div
-        [c/form-group
-         "Title"
-         [forms/input
-          {:type "text"
-           :name (conj path :title)
-           :placeholder "Title"
-           :class "form-control"}]]
-        [c/form-group
-         "Description"
-         [forms/textarea
-          {:name (conj path :description)
-           :placeholder "Description"
-           :class "form-control"}]]]
+      :title "New Project"
 
-       :footer
+      :footer
+      [:div
        [:button.btn.btn-primary
-        {:on-click #(rf/dispatch [:project/create fields])}
-        "Create"]}]]))
+        {:on-click #(rf/dispatch [:project/create new-project])}
+        "Create"] " "
+       [:a.btn.btn-light
+        {:href (rfe/href :home)}
+        "Cancel"]]}]))
 
 (defn edit-project-ui
   "Component to edit a project."
   []
   (r/with-let [path [:project/active]
-               fields (rf/subscribe path)]
-    [views/base-ui
-     [c/card
-      ; next to the title there should be a button to delete the project
-      {:title [:span "Edit Project"
-               [:button.btn.btn-danger.float-right
-                ;; TODO: add a modal to confirm the deletion.
-                {:on-click #(rf/dispatch [:project/delete (:id @fields)])}
-                "Delete"]]
+               project (rf/subscribe path)]
+    [project-ui
+     {:path path
 
-       :body
-       [:div
-        [c/form-group
-         "Title"
-         [forms/input
-          {:type "text"
-           :name (conj path :title)
-           :placeholder "Title"
-           :class "form-control"}]]
-        [c/form-group
-         "Description"
-         [forms/textarea
-          {:name (conj path :description)
-           :placeholder "Description"
-           :class "form-control"}]]]
+      :title "Edit Project"
 
-       :footer
+      :footer
+      [:div
        [:button.btn.btn-primary
-        {:on-click #(rf/dispatch [:project/update fields])}
-        "Update"]}]]))
+        {:on-click #(rf/dispatch [:project/update project])}
+        "Update"] " "
+       [:a.btn.btn-light
+        {:href (rfe/href :home)}
+        "Cancel"]]}]))
