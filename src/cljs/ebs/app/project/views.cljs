@@ -46,27 +46,43 @@
 (defn project-ui
   "Component to display a project."
   [{:keys [path title footer]}]
-  [views/base-ui
-   [c/card
-    {:title title
+  (r/with-let [project (rf/subscribe path)]
+    [views/base-ui
+     [c/card
+      {:title title
 
-     :body
-     [:div
-      [c/form-group
-       "Title"
-       [forms/input
-        {:type "text"
-         :name (conj path :title)
-         :placeholder "Title"
-         :class "form-control"}]]
-      [c/form-group
-       "Description"
-       [forms/textarea
-        {:name (conj path :description)
-         :placeholder "Description"
-         :class "form-control"}]]]
+       :body
+       [:div.row
+        [:div.col-md-9
+         [c/form-group
+          "Title"
+          [forms/input
+           {:type "text"
+            :name (conj path :title)
+            :placeholder "Title"
+            :class "form-control"}]]
+         [c/form-group
+          "Description"
+          [forms/textarea
+           {:name (conj path :description)
+            :placeholder "Description"
+            :class "form-control"
+            :rows 6}]]]
+        [:div.col-md-3
+         [c/form-group
+          "Created at"
+          [:input.form-control
+           {:type :datetime-local
+            :value (:created_at @project)
+            :disabled true}]]
+         [c/form-group
+          "Updated at"
+          [:input.form-control
+           {:type :datetime-local
+            :value (:updated_at @project)
+            :disabled true}]]]]
 
-     :footer footer}]])
+       :footer footer}]]))
 
 (defn new-project-ui
   "Component to create a new project."
@@ -81,7 +97,7 @@
       :footer
       [:div
        [:button.btn.btn-primary
-        {:on-click #(rf/dispatch [:project/create new-project])}
+        {:on-click #(rf/dispatch [:project/create! new-project])}
         "Create"] " "
        [:a.btn.btn-light
         {:href (rfe/href :home)}
@@ -95,12 +111,18 @@
     [project-ui
      {:path path
 
-      :title "Edit Project"
+      :title
+      ; add a delete button next to the title:
+      [:span
+       "Edit Project "
+       [:button.btn.btn-danger.float-right.btn-sm
+        {:on-click #(rf/dispatch [:project/delete! (:id @project)])}
+        "Delete"]]
 
       :footer
       [:div
        [:button.btn.btn-primary
-        {:on-click #(rf/dispatch [:project/update project])}
+        {:on-click #(rf/dispatch [:project/update! project])}
         "Update"] " "
        [:a.btn.btn-light
         {:href (rfe/href :home)}

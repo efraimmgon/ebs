@@ -1,9 +1,23 @@
 (ns ebs.app.project.handlers
   (:require
    [ajax.core :as ajax]
+   [ebs.utils.datetime :as datetime]
    [ebs.utils.events :refer [query base-interceptors]]
    [re-frame.core :as rf]))
 
+(defn project->in
+  "Coerce project data for the views."
+  [project]
+  (cond-> project
+    :created_at (datetime/update-datetime-in :created_at)
+    :updated_at (datetime/update-datetime-in :updated_at)))
+
+(defn project->out
+  "Coerce project data for the API."
+  [project]
+  (cond-> project
+    :created_at (datetime/update-datetime-out :created_at)
+    :updated_at (datetime/update-datetime-out :updated_at)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Events
@@ -12,7 +26,8 @@
  :projects/load-success
  base-interceptors
  (fn [{:keys [db]} [projects]]
-   {:db (assoc db :projects/all projects)}))
+   {:db (assoc db :projects/all
+               (map project->in projects))}))
 
 (rf/reg-event-fx
  :projects/load
@@ -34,7 +49,7 @@
     :db (dissoc db :project/new)}))
 
 (rf/reg-event-fx
- :project/create
+ :project/create!
  base-interceptors
  (fn [_ [project]]
    {:http-xhrio {:method :post
@@ -53,7 +68,7 @@
     :db (dissoc db :project/active)}))
 
 (rf/reg-event-fx
- :project/update
+ :project/update!
  base-interceptors
  (fn [{:keys [db]} [project]]
    {:http-xhrio {:method :put
@@ -62,13 +77,14 @@
                  :response-format (ajax/json-response-format {:keywords? true})
                  :on-success [:project/update-success]
                  :on-failure [:common/set-error]
-                 :params @project}}))
+                 :params (project->out @project)}}))
 
 (rf/reg-event-fx
  :project/load-project-success
  base-interceptors
  (fn [{:keys [db]} [project]]
-   {:db (assoc db :project/active project)}))
+   {:db (assoc db :project/active
+               (project->in project))}))
 
 (rf/reg-event-fx
  :project/load-project
@@ -89,7 +105,7 @@
     :db (dissoc db :project/active)}))
 
 (rf/reg-event-fx
- :project/delete
+ :project/delete!
  base-interceptors
  (fn [_ [project-id]]
    {:http-xhrio {:method :delete

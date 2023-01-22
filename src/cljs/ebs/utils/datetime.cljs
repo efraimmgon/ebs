@@ -24,3 +24,8 @@
     (cond (not (contains? m k)) m
           (or (clojure.string/blank? v) (nil? v)) (dissoc m k)
           :else (update m k datetime-out))))
+
+(defn datetime-ui
+  "Converts a string to a user friendly format"
+  [string]
+  (.toUTCString (js/Date. (str string "Z"))))

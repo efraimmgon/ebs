@@ -4,6 +4,7 @@
    [reagent.core :as r]
    [re-frame.core :as rf]
    [ebs.utils.components :as c]
+   [ebs.utils.datetime :as datetime]
    [ebs.utils.forms :as forms]
    [ebs.utils.views :as views]
    [reitit.frontend.easy :as rfe]
@@ -34,7 +35,7 @@
     (when (and due_date (not (clojure.string/blank? due_date)))
       [:div
        [:small.text-muted
-        due_date]])]])
+        (datetime/datetime-ui due_date)]])]])
 
 (defn extra-options
   "Component to display extra options for the stories"
