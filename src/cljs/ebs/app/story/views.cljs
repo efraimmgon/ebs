@@ -4,7 +4,6 @@
    [reagent.core :as r]
    [re-frame.core :as rf]
    [ebs.utils.components :as c]
-   [ebs.utils.events :as events]
    [ebs.utils.forms :as forms]
    [ebs.utils.views :as views]
    [reitit.frontend.easy :as rfe]
@@ -18,7 +17,7 @@
 
 (defn story-list-item
   "Component to display a story."
-  [{:keys [id project_id title priority labels]}]
+  [{:keys [id project_id title priority labels due_date]}]
   [:a.no-link-style
    {:href (rfe/href :story/edit {:project-id project_id :story-id id})}
    [:li.list-group-item
@@ -30,7 +29,12 @@
         ^{:key label}
         [:span
          [:span.badge {:class (label->class label)} label]
-         " "]))]]])
+         " "]))]
+
+    (when (and due_date (not (clojure.string/blank? due_date)))
+      [:div
+       [:small.text-muted
+        due_date]])]])
 
 (defn extra-options
   "Component to display extra options for the stories"
@@ -139,6 +143,12 @@
                   ^{:key id}
                   [:option {:value id} name])))]]
        [c/form-group
+        "Due date"
+        [forms/input
+         {:type :datetime-local
+          :name (conj path :due_date)
+          :class "form-control"}]]
+       [c/form-group
         "Labels"
         (doall
          (for [label @(rf/subscribe [:labels/all])]
@@ -146,7 +156,22 @@
            [forms/checkbox-comp
             {:name (conj path :labels)
              :label (clojure.string/capitalize label)
-             :value label}]))]]]
+             :value label}]))]
+       [c/form-group
+        "Created at"
+        [forms/input
+         {:type :datetime-local
+          :name (conj path :created_at)
+          :class "form-control"
+          :disabled true}]]
+       [c/form-group
+        "Updated at"
+        [forms/input
+         {:type :datetime-local
+          :name (conj path :updated_at)
+          :class "form-control"
+          :disabled true}]]]]
+
 
      :footer footer}]])
 
@@ -164,7 +189,7 @@
       :footer
       [:div
        [:button.btn.btn-primary
-        {:on-click #(rf/dispatch [:story/create @new-story])}
+        {:on-click #(rf/dispatch [:story/create! @new-story])}
         "Create"]
        [:a.btn.btn-secondary.ml-2
         {:href (rfe/href :project/view-stories {:project-id (:id @project)})}
@@ -183,7 +208,7 @@
       :footer
       [:div
        [:button.btn.btn-primary
-        {:on-click #(rf/dispatch [:story/update @story])}
+        {:on-click #(rf/dispatch [:story/update! @story])}
         "Update"]
        [:a.btn.btn-secondary.ml-2
         {:href (rfe/href :project/view-stories {:project-id (:project_id @story)})}

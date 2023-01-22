@@ -1,20 +1,38 @@
 (ns ebs.app.story.handlers
   (:require
+   clojure.string
    [ajax.core :as ajax]
+   [ebs.utils.datetime :as datetime]
    [ebs.utils.events :as events]
    [re-frame.core :as rf]))
+
+; (1) The checkbox input expects a set of labels, but the API returns a vector.
+(defn story->in
+  "Coerce story data for the views."
+  [story]
+  (cond-> story
+    :labels (update :labels set) ; (1)
+    :due_date (datetime/update-datetime-in :due_date)
+    :created_at (datetime/update-datetime-in :created_at)
+    :updated_at (datetime/update-datetime-in :updated_at)))
+
+(defn story->out
+  "Coerce story data for the API."
+  [story]
+  (cond-> story
+    :due_date (datetime/update-datetime-out :due_date)
+    :created_at (datetime/update-datetime-out :created_at)
+    :updated_at (datetime/update-datetime-out :updated_at)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Events
 
-; (1) The checkbox input expects a set of labels, but the API returns a vector.
 (rf/reg-event-fx
  :stories/load-success
  events/base-interceptors
  (fn [{:keys [db]} [stories]]
    (let [stories (->> stories
-                      (map #(cond-> %
-                              :labels (update :labels set))) ; (1)
+                      (map story->in)
                       (sort-by (juxt :priority :created_at) <))]
      {:db (assoc db :stories/all stories)})))
 
@@ -33,8 +51,7 @@
  :story/load-success
  events/base-interceptors
  (fn [{:keys [db]} [story]]
-   (let [story (cond-> story
-                 :labels (update :labels set))]
+   (let [story (story->in story)]
      {:db (assoc db :story/active story)})))
 
 (rf/reg-event-fx
@@ -57,7 +74,7 @@
                  [:assoc-in [:story/new] nil]]}))
 
 (rf/reg-event-fx
- :story/create
+ :story/create!
  events/base-interceptors
  (fn [{:keys [db]} [story]]
    (let [project-id (get-in db [:project/active :id])]
@@ -66,7 +83,9 @@
                    :uri (str "/api/projects/" project-id "/stories")
                    :format (ajax/json-request-format)
                    :response-format (ajax/json-response-format {:keywords? true})
-                   :params (assoc story :project_id project-id)
+                   :params (-> story
+                               story->out
+                               (assoc :project_id project-id))
                    :on-success [:story/create-success]
                    :on-failure [:common/set-error]}})))
 
@@ -80,7 +99,7 @@
     :db (dissoc db :story/active)}))
 
 (rf/reg-event-fx
- :story/update
+ :story/update!
  events/base-interceptors
  (fn [{:keys [db]} [story]]
    (let [project-id (get-in db [:project/active :id])
@@ -89,7 +108,9 @@
                    :uri (str "/api/projects/" project-id "/stories/" story-id)
                    :format (ajax/json-request-format)
                    :response-format (ajax/json-response-format {:keywords? true})
-                   :params (assoc story :project_id project-id)
+                   :params (-> story
+                               story->out
+                               (assoc :project_id project-id))
                    :on-success [:story/update-success]
                    :on-failure [:common/set-error]}})))
 
@@ -102,7 +123,7 @@
     :db (dissoc db :story/active)}))
 
 (rf/reg-event-fx
- :story/delete
+ :story/delete!
  events/base-interceptors
  (fn [_ [project-id story-id]]
    {:http-xhrio {:method :delete
