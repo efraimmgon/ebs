@@ -32,109 +32,210 @@
          [:span.badge {:class (label->class label)} label]
          " "]))]]])
 
+(defn extra-options
+  "Component to display extra options for the stories"
+  [project]
+  (r/with-let [show? (rf/subscribe [:stories/show-complete?])]
+    [:div.dropdown.dropleft.float-right
+     [:button.btn.btn-light.dropdown-toggle
+      {:type "button"
+       :id "dropdownMenu2"
+       :data-toggle "dropdown"
+       :aria-haspopup "true"
+       :aria-expanded "false"}
+      "⋮"]
+     [:div.dropdown-menu
+      [:button.dropdown-item
+       {:type "button"
+        :on-click #(rf/dispatch [:update-in [:stories/show-complete?] not])}
+       (if @show?
+         "Hide complete stories"
+         "View complete stories")]
+      [:a.dropdown-item
+       {:href (rfe/href :story/new {:project-id (:id @project)})}
+       "New Story"]]]))
+
 (defn stories-ui
   "Component to display the stories."
   []
   (r/with-let [project (rf/subscribe [:project/active])
+               statuses (rf/subscribe [:statuses/all])
                pending (rf/subscribe [:stories/pending])
                in-progress (rf/subscribe [:stories/in-progress])
-               complete (rf/subscribe [:stories/complete])]
-
+               complete (rf/subscribe [:stories/complete])
+               show-complete? (rf/subscribe [:stories/show-complete?])
+               stories+titles (map vector
+                                   [pending in-progress complete]
+                                   @statuses)]
     [views/base-ui
      [:div
       [:h1 "Stories"
-       [:a.btn.btn-light.float-right
-        {:href (rfe/href :story/new {:project-id (:id @project)})}
-        "New Story"]]]
+       [extra-options project]]]
      [:div.row
       (doall
-       (for [[stories title] [[pending "pending"]
-                              [in-progress "in progress"]
-                              [complete "complete"]]]
+       (for [[stories title] (if @show-complete?
+                               stories+titles
+                               (drop-last stories+titles))]
          ^{:key title}
-         [:div.col-md-4
-          (if (seq @stories)
-            [:div
-             ; A button next to the title to create a new story for this status.
-             [:h3 (clojure.string/capitalize title)
-              [:button.btn.btn-light.float-right
-               {:on-click #(events/dispatch-n
-                            [[:navigate! :story/new
-                              {:project-id (:id @project)}]
-                             [:assoc-in [:story/new :status] title]])}
-               "Add New"]]
-             [:ul.list-group
-              (doall
-               (for [story @stories]
-                 ^{:key (:id story)}
-                 [story-list-item story]))]]
+         [:div {:class (if @show-complete?
+                         "col-md-4"
+                         "col-md-6")}
+          [:h3 (clojure.string/capitalize title)
+           [:a.btn.btn-light.float-right
+            {:href (rfe/href :story/new {:project-id (:id @project)})
+             :on-click #(rf/dispatch [:assoc-in [:story/new :status] title])}
+            "Add New"]]
+          (if (empty? @stories)
+            [:p "-"]
+            [:ul.list-group
+             (for [story @stories]
+               ^{:key (:id story)}
+               [story-list-item story])])]))]]))
 
-            [:div [:h3 title] [::p "-"]])]))]]))
+; story-ui, containing the a template for the story form to avoid the duplication
+; we see in new-story-ui and edit-story-ui, so that we can use it in both places.
+; It should take a title and footer as arguments, and the body should be the
+; form itself.
+(defn story-ui
+  "Component to display the story form."
+  [{:keys [title footer path]}]
+  [views/base-ui
+   [c/card
+    {:title title
+
+     :body
+     [:div.row
+      [:div.col-md-9
+       [c/form-group
+        "Title"
+        [forms/input
+         {:type :text
+          :name (conj path :title)
+          :placehodler "Title"
+          :class "form-control"}]]
+       [c/form-group
+        "Description"
+        [forms/textarea
+         {:name (conj path :description)
+          :placeholder "Description"
+          :class "form-control"
+          :rows 5}]]]
+      [:div.col-md-3
+       [c/form-group
+        "Status"
+        [forms/select
+         {:name (conj path :status)
+          :default-value "pending"
+          :class "form-control"}
+         (doall
+          (for [status @(rf/subscribe [:statuses/all])]
+            ^{:key status}
+            [:option {:value status} (clojure.string/capitalize status)]))]]
+       [c/form-group
+        "Priority"
+        [forms/select
+         {:name (conj path :priority)
+          :class "form-control"
+          :save-fn #(js/parseInt %)}
+         (doall
+          (into [[:option {:value ""} ""]]
+                (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
+                  ^{:key id}
+                  [:option {:value id} name])))]]
+       [c/form-group
+        "Labels"
+        (doall
+         (for [label @(rf/subscribe [:labels/all])]
+           ^{:key label}
+           [forms/checkbox-comp
+            {:name (conj path :labels)
+             :label (clojure.string/capitalize label)
+             :value label}]))]]]
+
+     :footer footer}]])
 
 (defn new-story-ui
   "Component to create a new story."
   []
-  (r/with-let [path [:story/new]
-               fields (rf/subscribe path)]
-    [views/base-ui
-     [c/card
-      {:title "New Story"
+  (r/with-let [project (rf/subscribe [:project/active])
+               path [:story/new]
+               new-story (rf/subscribe path)]
+    [story-ui
+     {:title "New Story"
+      :path path
+      :footer
+      [:div
+       [:button.btn.btn-primary
+        {:on-click #(rf/dispatch [:story/create @new-story])}
+        "Create"]
+       [:a.btn.btn-secondary.ml-2
+        {:href (rfe/href :project/view-stories {:project-id (:id @project)})}
+        "Cancel"]]}]))
 
-       :body
-       [:div
-        [:div.row
-         [:div.col-md-9
-          [c/form-group
-           "Title"
-           [forms/input
-            {:type :text
-             :name (conj path :title)
-             :placehodler "Title"
-             :class "form-control"}]]
-          [c/form-group
-           "Description"
-           [forms/textarea
-            {:name (conj path :description)
-             :placeholder "Description"
-             :class "form-control"
-             :rows 5}]]]
-         [:div.col-md-3
-          [c/form-group
-           "Status"
-           [forms/select
-            {:name (conj path :status)
-             :default-value "pending"
-             :class "form-control"}
-            (doall
-             (for [status @(rf/subscribe [:statuses/all])]
-               ^{:key status}
-               [:option {:value status} (clojure.string/capitalize status)]))]]
-          [c/form-group
-           "Priority"
-           [forms/select
-            {:name (conj path :priority)
-             :class "form-control"
-             :save-fn #(js/parseInt %)}
-            (doall
-             (into [[:option {:value ""} ""]]
-                   (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
-                     ^{:key id}
-                     [:option {:value id} name])))]]
-          [c/form-group
-           "Labels"
-           (doall
-            (for [label @(rf/subscribe [:labels/all])]
-              ^{:key label}
-              [forms/checkbox-comp
-               {:name (conj path :labels)
-                :label (clojure.string/capitalize label)
-                :value label}]))]]]]
+#_(defn new-story-ui
+    "Component to create a new story."
+    []
+    (r/with-let [path [:story/new]
+                 fields (rf/subscribe path)]
+      [views/base-ui
+       [c/card
+        {:title "New Story"
 
-       :footer
-       [:div
-        [:button.btn.btn-primary
-         {:on-click #(rf/dispatch [:story/create @fields])}
-         "Create"]]}]]))
+         :body
+         [:div
+          [:div.row
+           [:div.col-md-9
+            [c/form-group
+             "Title"
+             [forms/input
+              {:type :text
+               :name (conj path :title)
+               :placehodler "Title"
+               :class "form-control"}]]
+            [c/form-group
+             "Description"
+             [forms/textarea
+              {:name (conj path :description)
+               :placeholder "Description"
+               :class "form-control"
+               :rows 5}]]]
+           [:div.col-md-3
+            [c/form-group
+             "Status"
+             [forms/select
+              {:name (conj path :status)
+               :default-value "pending"
+               :class "form-control"}
+              (doall
+               (for [status @(rf/subscribe [:statuses/all])]
+                 ^{:key status}
+                 [:option {:value status} (clojure.string/capitalize status)]))]]
+            [c/form-group
+             "Priority"
+             [forms/select
+              {:name (conj path :priority)
+               :class "form-control"
+               :save-fn #(js/parseInt %)}
+              (doall
+               (into [[:option {:value ""} ""]]
+                     (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
+                       ^{:key id}
+                       [:option {:value id} name])))]]
+            [c/form-group
+             "Labels"
+             (doall
+              (for [label @(rf/subscribe [:labels/all])]
+                ^{:key label}
+                [forms/checkbox-comp
+                 {:name (conj path :labels)
+                  :label (clojure.string/capitalize label)
+                  :value label}]))]]]]
+
+         :footer
+         [:div
+          [:button.btn.btn-primary
+           {:on-click #(rf/dispatch [:story/create @fields])}
+           "Create"]]}]]))
 
 (defn edit-story-ui
   "Component to edit a story."

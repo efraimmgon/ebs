@@ -117,6 +117,7 @@
 ;;; Subscriptions
 
 (rf/reg-sub :stories/all events/query)
+(rf/reg-sub :stories/show-complete? events/query)
 (rf/reg-sub :story/active events/query)
 (rf/reg-sub :story/new events/query)
 
@@ -137,3 +138,4 @@
  :<- [:stories/all]
  (fn [stories]
    (filter #(= "complete" (:status %)) stories)))
+
