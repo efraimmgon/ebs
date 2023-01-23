@@ -10,9 +10,9 @@
 
 ; - A task belongs to a story.
 ; - A task has an id.
-; - a task has a story_id
+; - A task has a story_id
 ; - A task has a title.
-; - A task has a due date.
+; - A task has a status. ("pending" "complete")
 ; - A task has a original estimate, a current estimate, a elapsed time, 
 ; and a remaining time (time is measured in minutes).
 ; - A task has many comments.
@@ -22,10 +22,13 @@
 (s/def :task/title string?)
 (s/def :task/description string?)
 (s/def :task/status string?)
-(s/def :task/due_date inst?)
+;; The user's first estimate.
 (s/def :task/original_estimate int?)
+;; The user's current (updated, if needed) estimate.
 (s/def :task/current_estimate int?)
+;; The time the user has spent on the task so far.
 (s/def :task/elapsed_time int?)
+;; The result of the equation: task/current_estimate - task/elapsed_time.
 (s/def :task/remaining_time int?)
 (s/def :task/created_at inst?)
 (s/def :task/updated_at inst?)
@@ -38,7 +41,6 @@
                    :task/created_at
                    :task/updated_at]
           :opt-un [:task/description
-                   :task/due_date
                    :task/original_estimate
                    :task/current_estimate
                    :task/elapsed_time
@@ -49,7 +51,6 @@
                    :task/title
                    :task/status]
           :opt-un [:task/description
-                   :task/due_date
                    :task/original_estimate
                    :task/current_estimate
                    :task/elapsed_time
@@ -61,7 +62,6 @@
           :opt-un [:task/title
                    :task/description
                    :task/status
-                   :task/due_date
                    :task/original_estimate
                    :task/current_estimate
                    :task/elapsed_time
@@ -70,12 +70,6 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; ROUTES
-
-; get-task
-; get-tasks
-; create-task
-; update-task
-; delete-task
 
 (defn get-tasks
   "Return all task records."
@@ -113,7 +107,7 @@
 (defn delete-task!
   "Delete a task record by id."
   [id]
-  (if-let [task (fsdb/get-by-id :task id)]
+  (if (seq (fsdb/get-by-id :task id))
     (do
       (fsdb/delete! :task id)
       (response/ok {:result :ok}))

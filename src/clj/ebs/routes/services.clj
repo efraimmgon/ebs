@@ -29,7 +29,9 @@
 ;;; -----------------------------------------------------------------------
 ;;; Utils
 
-(defn admin? [{:keys [identity] :as req}]
+(defn admin?
+  "Takes a request and returns true if the user is an admin."
+  [{:keys [identity]}]
   (and identity
        (:users/admin identity)))
 
