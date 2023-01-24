@@ -13,7 +13,7 @@ profiles.clj
 .nrepl-port
 /.clj-kondo/.cache/
 /.lsp/.cache/
-/.calva/output-window/
+/.calva
 
 /resources/db
 

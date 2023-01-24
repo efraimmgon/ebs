@@ -3,7 +3,9 @@
    clojure.edn
    clojure.pprint
    [clojure.java.io :as io]
-   [me.raynes.fs :as fs]))
+   [me.raynes.fs :as fs])
+  (:import
+   java.time.Instant))
 
 ;;; ----------------------------------------------------------------------------
 ;;; Filesystem-based Database
@@ -11,6 +13,8 @@
 
 ;;; ----------------------------------------------------------------------------
 ;;; Utils
+;;; ----------------------------------------------------------------------------
+
 
 (def db-dir (io/file fs/*cwd* "resources" "db"))
 (def settings-path (io/file db-dir "settings.edn"))
@@ -21,6 +25,7 @@
   (try
     (with-open [r (io/reader source)]
       (clojure.edn/read
+       {:readers {'inst #(Instant/parse %)}}
        (java.io.PushbackReader.
         r)))
 
@@ -28,6 +33,8 @@
       (printf "Couldn't open '%s': %s\n" source (.getMessage e)))
     (catch RuntimeException e
       (printf "Error parsing edn file '%s': %s\n" source (.getMessage e)))))
+
+
 
 (defn save-edn!
   "Save edn data to file.
@@ -61,6 +68,8 @@
 
 ;;; ----------------------------------------------------------------------------
 ;;; Settings
+;;; ----------------------------------------------------------------------------
+
 
 ; Management of id increment
 
@@ -98,6 +107,8 @@
 
 ;;; ----------------------------------------------------------------------------
 ;;; CREATE, DELETE TABLE
+;;; ----------------------------------------------------------------------------
+
 
 (defn create-table!
   "Creates the settings for the table. These settings will be used when 
@@ -126,6 +137,8 @@
 
 ;;; ----------------------------------------------------------------------------
 ;;; GET, SAVE, DELETE
+;;; ----------------------------------------------------------------------------
+
 
 ; All files are expected to contain edn objects, so we just use
 ; clojure.edn/read when loading them from the file.

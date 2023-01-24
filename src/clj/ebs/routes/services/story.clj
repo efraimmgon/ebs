@@ -26,9 +26,9 @@
 (s/def :story/status string?)
 (s/def :story/labels (s/* string?))
 (s/def :story/priority int?)
-(s/def :story/due_date inst?)
-(s/def :story/created_at inst?)
-(s/def :story/updated_at inst?)
+(s/def :story/due_date :common/date)
+(s/def :story/created_at :common/date)
+(s/def :story/updated_at :common/date)
 
 (s/def :story/Story
   (s/keys :req-un [:story/id
@@ -121,4 +121,6 @@
 (comment
   (fsdb/create-table! :story)
   (get-project-stories 5)
-  (fsdb/get-all :story))
+  (fsdb/get-all :story)
+  (def s (fsdb/get-by-id :story 5))
+  (type (:created_at s)))

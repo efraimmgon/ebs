@@ -2,13 +2,16 @@
   (:require
    [clojure.spec.alpha :as s]
    [ebs.utils :refer [string->date]]
-   [spec-tools.core :as st])
+   [spec-tools.core :as st]
+   [java-time.api :as jt]
+   [clojure.spec.alpha :as spec])
   (:import
-   java.time.LocalDateTime))
+   java.time.LocalDateTime
+   java.time.Instant))
 
 
 (defn now []
-  (-> (java.util.Date.) .getTime java.sql.Timestamp.))
+  (java.time.Instant/now))
 
 ; ------------------------------------------------------------------------------
 ; Common
@@ -20,11 +23,15 @@
     :decode/json #(string->date %2)
     :encode/json #(str %2)}))
 
+(def instant-spec
+  (st/spec
+   {:spec #(or (instance? java.time.Instant %) (string? %))
+    :decode/json #(java.time.Instant/parse %2)
+    :encode/json #(str %2)}))
 
 (s/def ::id int?)
-(s/def ::date local-date-time-spec)
+(s/def :common/date instant-spec)
 
-(s/def ::status #{"published", "draft"})
 
 (def email-regex #"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$")
 
