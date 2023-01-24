@@ -10,13 +10,11 @@
 
 ; An interval is a time period between two timestamps. It is represented by a
 ; map with a start and end key.
-; An interval has an elapsed time, which is the difference between the start
-; and end timestamps. It is measured in minutes.
+
 (s/def :interval/id int?)
 (s/def :interval/task_id int?)
 (s/def :interval/start inst?)
 (s/def :interval/end inst?)
-(s/def :interval/elapsed_time int?)
 
 
 ; - A task belongs to a story.
@@ -27,8 +25,6 @@
 ; - A task has a original estimate, a current estimate, a elapsed time, 
 ; and a remaining time (time is measured in minutes).
 ; - A task has many comments.
-
-
 
 (s/def :task/id int?)
 (s/def :task/story_id int?)
@@ -60,7 +56,8 @@
                    :task/original_estimate
                    :task/current_estimate
                    :task/elapsed_time
-                   :task/remaining_time]))
+                   :task/remaining_time
+                   :task/velocity]))
 
 (s/def :task/NewTask
   (s/keys :req-un [:task/story_id
@@ -81,7 +78,8 @@
                    :task/original_estimate
                    :task/current_estimate
                    :task/elapsed_time
-                   :task/remaining_time]))
+                   :task/remaining_time
+                   :task/velocity]))
 
 
 ;;; ---------------------------------------------------------------------------

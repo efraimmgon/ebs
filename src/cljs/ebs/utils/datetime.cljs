@@ -11,7 +11,9 @@
         (str string ":00Z")))))
 
 (defn datetime-in [string]
-  (->> string drop-last (apply str)))
+  (if (clojure.string/includes? string ".")
+    (-> string (clojure.string/split #"\.") first)
+    (->> string drop-last (apply str))))
 
 (defn update-datetime-in [m k]
   (let [v (get m k)]
