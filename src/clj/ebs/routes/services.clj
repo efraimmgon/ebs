@@ -42,26 +42,36 @@
 ;;; -----------------------------------------------------------------------
 ;;; Middlewares
 
-(defn admin-middleware [handler]
+(defn admin-middleware
+  "Return a middleware that checks if the user is an admin. If not, return a
+   forbidden error."
+  [handler]
   (fn [req]
     (if (admin? req)
       (handler req)
       (forbidden-error))))
 
-(defn auth-middleware [handler]
+(defn auth-middleware
+  "Return a middleware that checks if the user is authenticated. If not, return
+   an unauthorized error."
+  [handler]
   (fn [req]
     (if (authenticated? req)
       (handler req)
       (unauthorized
        {:error "You must be logged in to perform this action."}))))
 
-(defn users-any-granted? [{:keys [parameters identity] :as req}]
+(defn users-any-granted?
+  "Return true if the user is an admin or the user is the owner of the"
+  [{:keys [parameters identity]}]
   (when identity
     (or (:users/admin identity)
         (= (:users/id identity)
            (get-in parameters [:path :users/id])))))
 
 (defn user-any-granted-middleware [handler]
+  "Return a middleware that checks if the user is an admin or the user is the
+   owner of the resource. If not, return a forbidden error."
   (fn [req]
     (if (users-any-granted? req)
       (handler req)
