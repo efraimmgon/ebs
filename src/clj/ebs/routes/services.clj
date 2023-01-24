@@ -13,6 +13,7 @@
    [ebs.middleware.exception :as exception]
    [ebs.routes.services.project :as project]
    [ebs.routes.services.story :as story]
+   [ebs.routes.services.task :as task]
    ebs.routes.services.label
    ebs.routes.services.priority
    ebs.routes.services.status
@@ -80,7 +81,42 @@
 ;;; -----------------------------------------------------------------------
 ;;; Routes
 
+(defn task-routes
+  "Return a vector of task routes."
+  []
+  ["/tasks"
+   [""
+    {:get {:summary "Return all task records."
+           :responses {200 {:body :task/tasks}}
+           :handler (fn [{:keys [parameters]}]
+                      (task/get-story-tasks
+                       (get-in parameters [:path :story-id])))}
+     :post {:summary "Create a task record in the db."
+            :parameters {:body :task/NewTask}
+            :responses {200 {:body :task/Task}}
+            :handler (fn [{:keys [parameters]}]
+                       (task/create-task!
+                        (:body parameters)))}}]
 
+   ["/{task-id}"
+    {:parameters {:path {:task-id int?}}}
+    [""
+     {:get {:summary "Return a task record by id."
+            :responses {200 {:body :task/Task}}
+            :handler (fn [{:keys [parameters]}]
+                       (task/get-task
+                        (get-in parameters [:path :task-id])))}
+      :put {:summary "Update a task record with params."
+            :parameters {:body :task/UpdateTask}
+            :responses {200 {:body :task/Task}}
+            :handler (fn [{:keys [parameters]}]
+                       (task/update-task!
+                        (:body parameters)))}
+      :delete {:summary "Delete a task record."
+               :responses {200 {:body :result/Result}}
+               :handler (fn [{:keys [parameters]}]
+                          (task/delete-task!
+                           (get-in parameters [:path :task-id])))}}]]])
 
 (defn story-routes
   "Return a vector of story routes."
@@ -117,7 +153,10 @@
                :responses {200 {:body :result/Result}}
                :handler (fn [{:keys [parameters]}]
                           (story/delete-story!
-                           (get-in parameters [:path :story-id])))}}]]])
+                           (get-in parameters [:path :story-id])))}}]
+    ; "/api/projects/{project-id}/stories/{story-id}/tasks"
+    (task-routes)]])
+
 
 (defn project-routes []
   ["/projects"
@@ -154,7 +193,7 @@
                :handler (fn [{:keys [parameters]}]
                           (project/delete-project!
                            (get-in parameters [:path :project-id])))}}]
-    ;; "/api/project/{project-id}/stories/...r"
+    ;; "/api/project/{project-id}/stories/"
     (story-routes)]])
 
 

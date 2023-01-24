@@ -22,14 +22,11 @@
 ; - A task has a story_id
 ; - A task has a title.
 ; - A task has a status. ("pending" "complete")
-; - A task has a original estimate, a current estimate, a elapsed time, 
-; and a remaining time (time is measured in minutes).
-; - A task has many comments.
+; - A task has a original estimate, a current estimate, a elapsed time.
 
 (s/def :task/id int?)
 (s/def :task/story_id int?)
 (s/def :task/title string?)
-(s/def :task/description string?)
 (s/def :task/status string?)
 ;; The user's first estimate.
 (s/def :task/original_estimate int?)
@@ -37,8 +34,6 @@
 (s/def :task/current_estimate int?)
 ;; The time the user has spent on the task so far.
 (s/def :task/elapsed_time int?)
-;; The result of the equation: task/current_estimate - task/elapsed_time.
-(s/def :task/remaining_time int?)
 ;; When you divide estimate by actual time, you get velocity: how fast the  
 ;; task was done relative to estimate. (/ original_estimate elapsed_time)
 (s/def :task/velocity float?)
@@ -52,33 +47,27 @@
                    :task/status
                    :task/created_at
                    :task/updated_at]
-          :opt-un [:task/description
-                   :task/original_estimate
+          :opt-un [:task/original_estimate
                    :task/current_estimate
                    :task/elapsed_time
-                   :task/remaining_time
                    :task/velocity]))
 
 (s/def :task/NewTask
   (s/keys :req-un [:task/story_id
                    :task/title
                    :task/status]
-          :opt-un [:task/description
-                   :task/original_estimate
+          :opt-un [:task/original_estimate
                    :task/current_estimate
-                   :task/elapsed_time
-                   :task/remaining_time]))
+                   :task/elapsed_time]))
 
 (s/def :task/UpdateTask
   (s/keys :req-un [:task/id
                    :task/story_id]
           :opt-un [:task/title
-                   :task/description
+
                    :task/status
-                   :task/original_estimate
                    :task/current_estimate
                    :task/elapsed_time
-                   :task/remaining_time
                    :task/velocity]))
 
 
@@ -117,6 +106,16 @@
                    (assoc task
                           :created_at now
                           :updated_at now)))))
+
+(defn update-task!
+  "Update a task record in the db. Returns the updated task."
+  [task]
+  (if (seq (fsdb/get-by-id :task (:id task)))
+    (response/ok
+     (fsdb/update! :task
+                   (assoc task
+                          :updated_at (common/now))))
+    (response/not-found {:result {:message "Task not found."}})))
 
 (defn delete-task!
   "Delete a task record by id."
