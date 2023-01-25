@@ -154,7 +154,7 @@
                :handler (fn [{:keys [parameters]}]
                           (story/delete-story!
                            (get-in parameters [:path :story-id])))}}]
-    ; "/api/projects/{project-id}/stories/{story-id}/tasks"
+    ;; "/api/projects/{project-id}/stories/{story-id}/tasks"
     (task-routes)]])
 
 
@@ -234,7 +234,28 @@
              :config {:validator-url nil}})}]]
 
    ;; "/projects/..."
-   (project-routes)])
+   (project-routes)
+
+   ;; "/tasks/..."
+   ;; create, delete a task:
+   ["/tasks"
+    [""
+     {:post {:summary "Create a task record in the db."
+             :parameters {:body :task/NewTask}
+             :responses {200 {:body :task/Task}}
+             :handler (fn [{:keys [parameters]}]
+                        (task/create-task!
+                         (:body parameters)))}}]
+    ["{task-id}"
+     {:parameters {:path {:task-id int?}}}
+     [""
+     ;; To delete a task we only need the task id
+      {:delete {:summary "Delete a task record."
+                :responses {200 {:body :result/Result}}
+                :handler (fn [{:keys [parameters]}]
+                           (task/delete-task!
+                            (get-in parameters [:path :task-id])))}}]]]])
+
 
 (comment
 

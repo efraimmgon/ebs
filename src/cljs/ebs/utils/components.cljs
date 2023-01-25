@@ -43,36 +43,6 @@
     [:div]
     input)])
 
-(defn radio-input
-  "Radio component, with common boilerplate."
-  [{:keys [name class doc value label checked?]}]
-  [:div.form-check.form-check-radio
-   [:label.form-check-label
-    [forms/input
-     {:type :radio
-      :name name
-      :class (or class "form-check-input")
-      :doc doc
-      :value value
-      :checked? checked?}]
-    label
-    [:span.circle>span.check]]])
-
-(defn checkbox-input
-  "Checkbox component, with common boilerplate."
-  [{:keys [name class doc label checked?]}]
-  [:div.form-check
-   [:label.form-check-label
-    [forms/input
-     {:type :checkbox
-      :name name
-      :class (or class "form-check-input")
-      :doc doc
-      :checked? checked?}]
-    label
-    [:span.form-check-sign>span.check]]])
-
-
 ; ------------------------------------------------------------------------------
 ; MISC
 ; ------------------------------------------------------------------------------
@@ -171,18 +141,6 @@
 ; ------------------------------------------------------------------------------
 ; Modal
 ; ------------------------------------------------------------------------------
-#_(defn modal [{:keys [attrs header body footer]}]
-    [:div attrs
-     [:div.modal-dialog
-      [:div.modal-content
-       [:div.modal-header
-        [:div.modal-title
-         [:h3 header]]]
-       [:div.modal-body body]
-       (when footer
-         [:div.modal-footer
-          footer])]]
-     [:div.modal-backdrop.fade.in]])
 
 (defn modal [{:keys [attrs header body footer]}]
   [:div

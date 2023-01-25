@@ -57,6 +57,12 @@
                                    (js/parseInt
                                     (get-in path [:path :project-id]))
                                    (js/parseInt
+                                    (get-in path [:path :story-id]))])
+                                 (rf/dispatch
+                                  [:story/load-tasks
+                                   (js/parseInt
+                                    (get-in path [:path :project-id]))
+                                   (js/parseInt
                                     (get-in path [:path :story-id]))]))}]}
         ["/edit"
          {:name :story/edit

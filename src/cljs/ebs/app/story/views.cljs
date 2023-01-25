@@ -3,6 +3,7 @@
    clojure.string
    [reagent.core :as r]
    [re-frame.core :as rf]
+   [ebs.app.task.views :as task]
    [ebs.utils.components :as c]
    [ebs.utils.datetime :as datetime]
    [ebs.utils.forms :as forms]
@@ -120,7 +121,8 @@
          {:name (conj path :description)
           :placeholder "Description"
           :class "form-control"
-          :rows 5}]]]
+          :rows 5}]]
+       [task/tasks-ui]]
       [:div.col-md-3
        [c/form-group
         "Status"

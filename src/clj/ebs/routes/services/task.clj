@@ -70,6 +70,7 @@
                    :task/elapsed_time
                    :task/velocity]))
 
+(s/def :task/tasks (s/* :task/Task))
 
 ;;; ---------------------------------------------------------------------------
 ;;; ROUTES
