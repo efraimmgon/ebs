@@ -6,6 +6,11 @@
    [ebs.utils.events :as events]
    [re-frame.core :as rf]))
 
+(defn temporary-id?
+  "Returns true if the id is a temporary id (a gensym)."
+  [id]
+  (= id @(rf/subscribe [:task/new])))
+
 ;;; ---------------------------------------------------------------------------
 ;;; Handlers
 
@@ -35,12 +40,14 @@
  :task/add-item
  events/base-interceptors
  (fn [{:keys [db]} [story-id]]
-   (let [id (gensym)]
-     {:db (assoc-in db [:story/tasks-map id]
-                    {:id id
-                     :story_id story-id
-                     :status "pending"
-                     :title ""})})))
+   (let [id (.getTime (js/Date.))]
+     {:db (-> db
+              (assoc-in [:story/tasks-map id]
+                        {:id id
+                         :story_id story-id
+                         :status "pending"
+                         :title ""})
+              (assoc :task/new id))})))
 
 (rf/reg-event-fx
  :task/create-success
@@ -68,27 +75,51 @@
                    :on-failure [:common/set-error]}})))
 
 (rf/reg-event-fx
+ :task/update-success
+ events/base-interceptors
+ (fn [{:keys [db]} [task]]
+   {:db (assoc-in db [:story/tasks-map (:id task)] task)}))
+
+(rf/reg-event-fx
+ :task/update!
+ events/base-interceptors
+ (fn [_ [task]]
+   (let [new-task (dissoc task
+                          :original_estimate
+                          :created_at
+                          :updated_at)]
+     {:http-xhrio {:method :put
+                   :uri (str "/api/tasks/" (:id task))
+                   :format (ajax/json-request-format)
+                   :response-format (ajax/json-response-format {:keywords? true})
+                   :params new-task
+                   :on-success [:task/update-success]
+                   :on-failure [:common/set-error]}})))
+
+(rf/reg-event-fx
  :task/delete!
  events/base-interceptors
  (fn [{:keys [db]} [task-id]]
-   (if (symbol? task-id)
-     {:db (update db :story/tasks-map
-                  dissoc task-id)}
-     {:http-xhrio {:method :delete
-                   :uri (str "/api/tasks/" task-id)
-                   :format (ajax/json-request-format)
-                   :response-format (ajax/json-response-format {:keywords? true})
-                   :on-success [:task/delete-success]
-                   :on-failure [:common/set-error]}
-      :db (update db :story/tasks-map
-                  dissoc task-id)})))
+   (let [new-db (cond-> db
+                  (temporary-id? task-id) (update :story/tasks-map
+                                                  dissoc task-id)
+                  :always (dissoc :task/new))]
+     (if (temporary-id? task-id)
+       {:db new-db}
+       {:http-xhrio {:method :delete
+                     :uri (str "/api/tasks/" task-id)
+                     :format (ajax/json-request-format)
+                     :response-format (ajax/json-response-format {:keywords? true})
+                     :on-success [:task/delete-success]
+                     :on-failure [:common/set-error]}
+        :db new-db}))))
 
 
 ;;; ---------------------------------------------------------------------------
 ;;; Subscriptions
 
 (rf/reg-sub :story/tasks-map events/query)
-(rf/reg-sub :task/active events/query)
+(rf/reg-sub :task/new events/query)
 
 (rf/reg-sub
  :story/tasks-list

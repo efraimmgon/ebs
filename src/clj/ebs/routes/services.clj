@@ -246,11 +246,16 @@
              :handler (fn [{:keys [parameters]}]
                         (task/create-task!
                          (:body parameters)))}}]
-    ["{task-id}"
+    ["/{task-id}"
      {:parameters {:path {:task-id int?}}}
      [""
-     ;; To delete a task we only need the task id
-      {:delete {:summary "Delete a task record."
+      {:put {:summary "Update a task record with params."
+             :parameters {:body :task/UpdateTask}
+             :responses {200 {:body :task/Task}}
+             :handler (fn [{:keys [parameters]}]
+                        (task/update-task!
+                         (:body parameters)))}
+       :delete {:summary "Delete a task record."
                 :responses {200 {:body :result/Result}}
                 :handler (fn [{:keys [parameters]}]
                            (task/delete-task!

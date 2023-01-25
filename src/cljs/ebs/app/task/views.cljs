@@ -31,7 +31,7 @@
 (defn temporary-id?
   "Returns true if the id is a temporary id (a gensym)."
   [id]
-  (symbol? id))
+  (= id @(rf/subscribe [:task/new])))
 
 (defn story-list-item
   "Component to display a task."
@@ -72,24 +72,30 @@
           :disabled true
           :value (or elapsed_time "")}]]]
       (when (or @focused? (temporary-id? id))
-        [:div
-         (if (temporary-id? id)
+        (if (temporary-id? id)
+          [:div
            [:button.btn.btn-primary
             {:on-click #(rf/dispatch [:task/create! @task])}
-            "Create"]
+            "Create"] " "
+           [:button.btn.btn-danger
+            {:on-click #(rf/dispatch [:task/delete! id])}
+            "Cancel"]]
+          [:div
            [:button.btn.btn-primary
-            {:on-click #(rf/dispatch [:task/update {:id id}])}
-            "Save"])
-         " "
-         [:button.btn.btn-danger
-          {:on-click #(rf/dispatch [:task/delete! id])}
-          "Delete"]])]]))
+            {:on-click #(do
+                          (swap! focused? not)
+                          (rf/dispatch [:task/update! @task]))}
+            "Save"] " "
+           [:button.btn.btn-danger
+            {:on-click #(rf/dispatch [:task/delete! id])}
+            "Delete"]]))]]))
 
 (defn tasks-ui
   "Component to display a list of tasks."
   []
   (r/with-let [story (rf/subscribe [:story/active])
-               tasks (rf/subscribe [:story/tasks-list])]
+               tasks (rf/subscribe [:story/tasks-list])
+               new-task? (rf/subscribe [:task/new])]
     [:div
      [:h4 "Tasks"]
 
@@ -109,7 +115,7 @@
          (for [task @tasks]
            ^{:key (:id task)}
            [story-list-item task]))])
-      ; a button to add a new task
-     [:button.btn.btn-light
-      {:on-click #(rf/dispatch [:task/add-item (:id @story)])}
-      "New item"]]))
+     (when-not @new-task?
+       [:button.btn.btn-light
+        {:on-click #(rf/dispatch [:task/add-item (:id @story)])}
+        "New item"])]))
