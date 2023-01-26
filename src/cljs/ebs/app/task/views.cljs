@@ -31,7 +31,7 @@
 (defn temporary-id?
   "Returns true if the id is a temporary id (a gensym)."
   [id]
-  (= id @(rf/subscribe [:task/new])))
+  (contains? @(rf/subscribe [:task/temporary]) id))
 
 (defn story-list-item
   "Component to display a task."
@@ -95,7 +95,7 @@
   []
   (r/with-let [story (rf/subscribe [:story/active])
                tasks (rf/subscribe [:story/tasks-list])
-               new-task? (rf/subscribe [:task/new])]
+               new-task? (rf/subscribe [:task/temporary])]
     [:div
      [:h4 "Tasks"]
 
@@ -115,7 +115,7 @@
          (for [task @tasks]
            ^{:key (:id task)}
            [story-list-item task]))])
-     (when-not @new-task?
+     (when  (empty? @new-task?)
        [:button.btn.btn-light
         {:on-click #(rf/dispatch [:task/add-item (:id @story)])}
         "New item"])]))
