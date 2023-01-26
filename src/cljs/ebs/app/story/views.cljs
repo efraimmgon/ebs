@@ -3,6 +3,7 @@
    clojure.string
    [reagent.core :as r]
    [re-frame.core :as rf]
+   [ebs.app.timer.views :as timer]
    [ebs.app.task.views :as task]
    [ebs.utils.components :as c]
    [ebs.utils.datetime :as datetime]
@@ -107,6 +108,8 @@
 
      :body
      [:div.row
+
+      ;; Left column
       [:div.col-md-9
        [c/form-group
         "Title"
@@ -122,7 +125,10 @@
           :placeholder "Description"
           :class "form-control"
           :rows 5}]]
+       [timer/timer-ui]
        [task/tasks-ui]]
+
+      ;; Right column
       [:div.col-md-3
        [c/form-group
         "Status"
