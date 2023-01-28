@@ -31,3 +31,26 @@
   "Converts a string to a user friendly format"
   [string]
   (.toUTCString (js/Date. (str string "Z"))))
+
+(defn min->ms
+  "Convert minutes to milliseconds"
+  [min]
+  (* min 60 1000))
+
+(defn min->sec
+  "Convert minutes to seconds"
+  [min]
+  (* min 60))
+
+(defn sec->ms
+  "Convert seconds to milliseconds"
+  [sec]
+  (* sec 1000))
+
+(defn time-remaining
+  "Returns the time remaining in minutes and seconds."
+  [time-remain-seconds]
+  (let [time->minutes-remain (fn [seconds] (-> seconds (/ 60) (mod 60) int))
+        time->seconds-remain (fn [seconds] (-> seconds (mod 60) int))]
+    [(time->minutes-remain time-remain-seconds)
+     (time->seconds-remain time-remain-seconds)]))

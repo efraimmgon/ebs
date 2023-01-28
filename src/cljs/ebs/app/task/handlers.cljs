@@ -2,7 +2,6 @@
   (:require
    clojure.string
    [ajax.core :as ajax]
-   [ebs.utils.datetime :as datetime]
    [ebs.utils.events :as events]
    [re-frame.core :as rf]))
 
@@ -96,10 +95,8 @@
  :task/update!
  events/base-interceptors
  (fn [_ [task]]
-   (let [new-task (dissoc task
-                          :original_estimate
-                          :created_at
-                          :updated_at)]
+   (let [ks [:id :title :status :current_estimate :original_estimate]
+         new-task (select-keys task ks)]
      {:http-xhrio {:method :put
                    :uri (str "/api/tasks/" (:id task))
                    :format (ajax/json-request-format)

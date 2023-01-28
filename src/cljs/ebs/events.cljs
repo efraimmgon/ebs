@@ -1,23 +1,15 @@
 (ns ebs.events
   (:require
    cljs.pprint
+   [ebs.utils.datetime :as datetime]
    [ebs.utils.events :refer [base-interceptors query]]
    [re-frame.core :as rf]
-   [ajax.core :as ajax]
    [reitit.frontend.easy :as rfe]
    [reitit.frontend.controllers :as rfc]))
 
-;;dispatchers
-
-(rf/reg-event-fx
- :ajax-error
- (fn [_ [_ response]]
-   (js/console.log response)
-   (let [message (get-in response [:response :message])
-         error (with-out-str
-                 (cljs.pprint/pprint
-                  ((juxt :status-text :response) response)))]
-     {:dispatch [:set-error (or message error)]})))
+;;; ---------------------------------------------------------------------------
+;;; HANDLERS
+;;; ---------------------------------------------------------------------------
 
 (rf/reg-event-db
  :assoc-in
@@ -71,17 +63,23 @@
    {:common/navigate-fx! [url-key params query]}))
 
 (rf/reg-event-db
- :set-docs
- (fn [db [_ docs]]
-   (assoc db :docs docs)))
+ :common/set-error
+ (fn [db [_ error]]
+   (assoc db :common/error error)))
 
-(rf/reg-event-fx
- :fetch-docs
- (fn [_ _]
-   {:http-xhrio {:method          :get
-                 :uri             "/docs"
-                 :response-format (ajax/raw-response-format)
-                 :on-success       [:set-docs]}}))
+
+;;; ---------------------------------------------------------------------------
+;;; Initial state
+
+(def timer-settings
+  {:work (datetime/min->sec 25)
+   :short-break (datetime/min->sec 5)
+   :long-break (datetime/min->sec 15)
+   :long-break-interval 4
+   :interval-count 0
+   :time-elapsed 0
+   :state :stopped
+   :current-session :work})
 
 ; TODO: fetch data from the server.
 (def priorities
@@ -100,7 +98,8 @@
 (def default-db
   {:statuses/all statuses
    :priorities/all priorities
-   :labels/all labels})
+   :labels/all labels
+   :timer/settings timer-settings})
 
 (rf/reg-event-fx
  :initialize-app!
@@ -109,18 +108,9 @@
    {:db (merge db default-db)}))
 
 
-(rf/reg-event-db
- :common/set-error
- (fn [db [_ error]]
-   (assoc db :common/error error)))
-
-(rf/reg-event-fx
- :page/init-home
- (fn [_ _]
-   {:dispatch [:fetch-docs]}))
-
 ;;; ---------------------------------------------------------------------------
 ;;; SUBSCRIPTIONS
+;;; ---------------------------------------------------------------------------
 
 (rf/reg-sub
  :common/route
