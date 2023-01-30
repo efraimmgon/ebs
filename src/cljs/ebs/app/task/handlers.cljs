@@ -74,9 +74,10 @@
  :task/create!
  events/base-interceptors
  (fn [_ [task]]
-   (let [new-task (-> task
-                      (dissoc :id)
-                      (assoc :original_estimate (:current_estimate task)))]
+   (let [new-task (dissoc task :id)
+         new-task (if (:original_estimate new-task)
+                    (assoc new-task :current_estimate (:original_estimate new-task))
+                    new-task)]
      {:http-xhrio {:method :post
                    :uri "/api/tasks"
                    :format (ajax/json-request-format)

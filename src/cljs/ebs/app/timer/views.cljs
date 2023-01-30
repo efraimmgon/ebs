@@ -42,6 +42,7 @@
           [:option {:value (:id task)} (:title task)])]])))
 
 
+
 (defn time-remaining-ui
   "Displays the time remaining in the current interval, in the format mm:ss."
   [[minutes seconds]]
@@ -55,26 +56,24 @@
                state (rf/subscribe [:timer/state])
                current-session (rf/subscribe [:timer/current-session])
                time-remaining (rf/subscribe [:timer/time-remaining])]
-    (when (seq @tasks)
-      [:div
+    [:div
+     [:h5
+      [:span.material-icons "timer"]
+      " Pomodoro Timer "
+      [:span.badge.badge-danger.font-weight-bold
+       [time-remaining-ui @time-remaining]]]
 
-       [:h5
-        [:span.material-icons "timer"]
-        " Pomodoro Timer "
-        [:span.badge.badge-danger.font-weight-bold
-         [time-remaining-ui @time-remaining]]]
+     [:div.form-group.row
 
-       [:div.form-group.row
+      [:label.col-sm-1.col-form-label "Task"]
+      [select-task tasks]
 
-        [:label.col-sm-1.col-form-label "Task"]
-        [select-task tasks]
-
-        [:div.col-sm-4
-         (when (= :stopped @state)
-           [start-timer-button])
-         " "
-         (when (and (= :stopped @state)
-                    (not= :work @current-session))
-           [skip-break-button])
-         (when (= :running @state)
-           [stop-timer-button])]]])))
+      [:div.col-sm-4
+       (when (= :stopped @state)
+         [start-timer-button])
+       " "
+       (when (and (= :stopped @state)
+                  (not= :work @current-session))
+         [skip-break-button])
+       (when (= :running @state)
+         [stop-timer-button])]]]))
