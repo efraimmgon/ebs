@@ -235,7 +235,12 @@
   (r/with-let [path [:story/active]
                story (rf/subscribe path)]
     [story-ui
-     {:title "Edit Story"
+     {:title
+      [:div "Edit Story"
+       [:span.float-right
+        [:button.btn.btn-danger
+         {:on-click #(rf/dispatch [:story/delete! (:project_id @story) (:id @story)])}
+         "Delete"]]]
 
       :path path
 
