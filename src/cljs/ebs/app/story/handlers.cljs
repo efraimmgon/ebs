@@ -69,9 +69,9 @@
  :story/create-success
  events/base-interceptors
  (fn [_ [story]]
-   {:dispatch-n [[:navigate! :project/view-stories
-                  {:project-id (:project_id story)}]
-                 [:assoc-in [:story/new] nil]]}))
+   {:dispatch-n [[:remove-modal]
+                 [:assoc-in [:story/new] nil]
+                 [:update-in [:stories/all] conj story]]}))
 
 (rf/reg-event-fx
  :story/create!

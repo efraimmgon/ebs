@@ -62,6 +62,30 @@
        {:href (rfe/href :story/new {:project-id (:id @project)})}
        "New Story"]]]))
 
+(defn new-story-modal
+  []
+  (r/with-let [path [:story/new]
+               story (rf/subscribe path)]
+    [c/modal
+     {:header "New Story"
+      :body [:div
+             [c/form-group
+              "Title"
+              [forms/input
+               {:type :text
+                :auto-focus true
+                :name (conj path :title)
+                :placeholder "Title"
+                :class "form-control"}]]]
+      :footer [:div
+               [:button.btn.btn-primary
+                {:on-click #(rf/dispatch [:story/create! @story])}
+                "Create"] " "
+               [:button.btn.btn-secondary
+                {:on-click #(do (rf/dispatch [:remove-modal])
+                                (rf/dispatch [:assoc-in path nil]))}
+                "Cancel"]]}]))
+
 (defn stories-ui
   "Component to display the stories."
   []
@@ -88,9 +112,10 @@
                          "col-md-4"
                          "col-md-6")}
           [:h3 (clojure.string/capitalize title)
-           [:a.btn.btn-light.float-right
-            {:href (rfe/href :story/new {:project-id (:id @project)})
-             :on-click #(rf/dispatch [:assoc-in [:story/new :status] title])}
+           [:button.btn.btn-light.float-right
+            {:on-click #(do
+                          (rf/dispatch [:modal new-story-modal])
+                          (rf/dispatch [:assoc-in [:story/new :status] title]))}
             "Add New"]]
           (if (empty? @stories)
             [:p "-"]
