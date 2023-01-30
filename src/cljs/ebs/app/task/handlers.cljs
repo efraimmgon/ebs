@@ -95,7 +95,7 @@
  :task/update!
  events/base-interceptors
  (fn [_ [task]]
-   (let [ks [:id :title :status :current_estimate :original_estimate]
+   (let [ks [:id :story_id :title :status :current_estimate :original_estimate]
          new-task (select-keys task ks)]
      {:http-xhrio {:method :put
                    :uri (str "/api/tasks/" (:id task))

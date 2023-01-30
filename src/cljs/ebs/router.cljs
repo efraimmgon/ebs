@@ -47,7 +47,11 @@
                                     (get-in path [:path :project-id]))]))}]}]
        ["/new"
         {:name :story/new
-         :view #'story/new-story-ui}]
+         :view #'story/new-story-ui
+         :controllers [{:parameters {:path [:project-id]}
+                        :start (fn [_]
+                                 (rf/dispatch
+                                  [:assoc-in [:story/tasks-map] nil]))}]}]
        ["/{story-id}"
         {:parameters {:path {:story-id int?}}
          :controllers [{:parameters {:path [:project-id :story-id]}

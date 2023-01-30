@@ -28,15 +28,19 @@
 
 (defn select-task
   [tasks]
-  (when (seq @tasks)
-    [:div.col-sm-7
-     [forms/select
-      {:name [:timer/task]
-       :class "form-control form-control-sm"}
-      (doall
-       (for [task @tasks]
-         ^{:key (:id task)}
-         [:option {:value (:id task)} (:title task)]))]]))
+  (r/with-let [selected (rf/subscribe [:timer/task])]
+    (when (nil? @selected)
+      (rf/dispatch-sync [:assoc-in [:timer/task] (-> @tasks first :id)]))
+    (when (seq @tasks)
+      [:div.col-sm-7
+       [:select.form-control.form-control-sm
+        {:value (or @selected "")
+         :on-change #(rf/dispatch [:assoc-in [:timer/task]
+                                   (-> % .-target .-value js/parseInt)])}
+        (for [task @tasks]
+          ^{:key (:id task)}
+          [:option {:value (:id task)} (:title task)])]])))
+
 
 (defn time-remaining-ui
   "Displays the time remaining in the current interval, in the format mm:ss."
