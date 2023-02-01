@@ -2,31 +2,8 @@
   (:require
    [reagent.core :as r]
    [re-frame.core :as rf]
-   [reitit.frontend.easy :as rfe]
    [ebs.utils.forms :as forms]
-   [ebs.utils.views :as views]
-   ebs.app.task.handlers
-   [ebs.utils.components :as c]))
-
-; - task-ui: A task should be displayed as a li.group-item.
-; - a task is a map with the following keys:
-;   :title
-;   :status
-;   :estimate
-;   :elapsed_time
-
-; - :status can be "pending" or "complete". The ui should display a checkbox
-;   for pending tasks and a checkmark for complete tasks.
-; - :estimate is a number input. It represents the number of minutes the task
-;   is expected to take.
-; - :elapsed_time is a number input. It represents the number of minutes the
-;   task has taken so far.
-; - :title is a text input. It represents the title of the task.
-; - Each story-list-item should also have a save button. When clicked, it
-;   should dispatch a :task/update event with the task id and the new values
-;   for the task.
-; - The task-ui should also have a delete button. When clicked, it should
-;   dispatch a :task/delete event with the task id.
+   ebs.app.task.handlers))
 
 (defn temporary-id?
   "Returns true if the id is a temporary id (a gensym)."
@@ -39,9 +16,10 @@
   (r/with-let [path [:story/tasks-map id]
                task (rf/subscribe [:query path])
                focused? (r/atom false)]
-    [:li.list-group-item
+    [:div
      {:on-focus #(swap! focused? not)
       :on-blur #(swap! focused? not)}
+
      [:div
       (when (and estimate elapsed_time)
         [:div.float-right
@@ -59,6 +37,7 @@
        [:div.form-group.col-md-7
         [forms/textarea
          {:name (conj path :title)
+          :rows 1
           :class "form-control"
           :auto-focus (temporary-id? id)}]]
        [:div.form-group.col-md-2
@@ -73,22 +52,26 @@
           :value (or elapsed_time "")}]]]
       (when (or @focused? (temporary-id? id))
         (if (temporary-id? id)
-          [:div
-           [:button.btn.btn-primary
-            {:on-click #(rf/dispatch [:task/create! @task])}
-            "Create"] " "
-           [:button.btn.btn-danger
-            {:on-click #(rf/dispatch [:task/delete! id])}
-            "Cancel"]]
-          [:div
-           [:button.btn.btn-primary
-            {:on-click #(do
-                          (swap! focused? not)
-                          (rf/dispatch [:task/update! @task]))}
-            "Save"] " "
-           [:button.btn.btn-danger
-            {:on-click #(rf/dispatch [:task/delete! id])}
-            "Delete"]]))]]))
+          [:div:div.form-row
+           [:div.form-group.col-md-1]
+           [:div.form-group.col-md-11
+            [:button.btn.btn-primary
+             {:on-click #(rf/dispatch [:task/create! @task])}
+             "Create"] " "
+            [:button.btn.btn-danger
+             {:on-click #(rf/dispatch [:task/delete! id])}
+             "Cancel"]]]
+          [:div.form-row
+           [:div.form-group.col-md-1]
+           [:div.form-group.col-md-11
+            [:button.btn.btn-primary
+             {:on-click #(do
+                           (swap! focused? not)
+                           (rf/dispatch [:task/update! @task]))}
+             "Save"] " "
+            [:button.btn.btn-danger
+             {:on-click #(rf/dispatch [:task/delete! id])}
+             "Delete"]]]))]]))
 
 (defn tasks-ui
   "Component to display a list of tasks."
@@ -99,22 +82,40 @@
     [:div
      [:h4 "Tasks"]
 
+     #_(when (seq @tasks)
+         [:ul.list-group
+          [:li.list-group-item
+           [:div.form-row.text-center
+            [:div.form-group.col-md-1
+             [:label "Done?"]]
+            [:div.form-group.col-md-7
+             [:label "Title"]]
+            [:div.form-group.col-md-2
+             [:label "Time Estimate"]]
+            [:div.form-group.col-md-2
+             [:label "Elapsed Time"]]]]
+          (doall
+           (for [task @tasks]
+             ^{:key (:id task)}
+             [story-list-item task]))])
+     ;; same code as the block above, but don't use  list-group or list-group-item,
+     ;; just rows and cols
      (when (seq @tasks)
-       [:ul.list-group
-        [:li.list-group-item
-         [:div.form-row.text-center
-          [:div.form-group.col-md-1
-           [:label "Done?"]]
-          [:div.form-group.col-md-7
-           [:label "Title"]]
-          [:div.form-group.col-md-2
-           [:label "Time Estimate"]]
-          [:div.form-group.col-md-2
-           [:label "Elapsed Time"]]]]
+       [:div
+        [:div.form-row.text-center
+         [:div.form-group.col-md-1
+          [:label "Done?"]]
+         [:div.form-group.col-md-7
+          [:label "Title"]]
+         [:div.form-group.col-md-2
+          [:label "Time Estimate"]]
+         [:div.form-group.col-md-2
+          [:label "Elapsed Time"]]]
         (doall
          (for [task @tasks]
            ^{:key (:id task)}
            [story-list-item task]))])
+
      (when  (empty? @new-task?)
        [:button.btn.btn-light
         {:on-click #(rf/dispatch [:task/add-item (:id @story)])}
