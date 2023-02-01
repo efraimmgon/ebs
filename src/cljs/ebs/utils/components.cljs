@@ -144,9 +144,7 @@
 
 (defn modal [{:keys [attrs header body footer]}]
   [:div
-   (merge {:on-key-down
-           (on-key-handler {"Escape" #(rf/dispatch [:remove-modal])})}
-          attrs)
+   attrs
    [:div.modal-dialog
     [:div.modal-content
      (when header

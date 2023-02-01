@@ -21,11 +21,13 @@
 (defn story-list-item
   "Component to display a story."
   [{:keys [id project_id title priority labels due_date]}]
+
   [:a.no-link-style
    {:href (rfe/href :story/edit {:project-id project_id :story-id id})}
    [:li.list-group-item
     [:p
-     [:small.text-muted (str "[" priority "]")] " "
+     (when priority
+       [:small.text-muted (str "[" priority "]")]) " "
      title " "
      (doall
       (for [label labels]
@@ -65,9 +67,20 @@
 (defn new-story-modal
   []
   (r/with-let [path [:story/new]
-               story (rf/subscribe path)]
+               story (rf/subscribe path)
+               create-handler #(rf/dispatch [:story/create! @story])
+               cancel-handler #(do (prn "cancel")  (flush)
+                                   (rf/dispatch [:remove-modal])
+                                   (rf/dispatch [:assoc-in path nil]))]
     [c/modal
      {:header "New Story"
+
+      :attrs {:on-key-down
+              #(case (.-key %)
+                 "Escape" (cancel-handler)
+                 "Enter" (create-handler)
+                 nil)}
+
       :body [:div
              [c/form-group
               "Title"
@@ -77,13 +90,13 @@
                 :name (conj path :title)
                 :placeholder "Title"
                 :class "form-control"}]]]
+
       :footer [:div
                [:button.btn.btn-primary
-                {:on-click #(rf/dispatch [:story/create! @story])}
+                {:on-click create-handler}
                 "Create"] " "
                [:button.btn.btn-secondary
-                {:on-click #(do (rf/dispatch [:remove-modal])
-                                (rf/dispatch [:assoc-in path nil]))}
+                {:on-click cancel-handler}
                 "Cancel"]]}]))
 
 (defn stories-ui
@@ -102,6 +115,7 @@
      [:div
       [:h1 "Stories"
        [extra-options project]]]
+
      [:div.row
       (doall
        (for [[stories title] (if @show-complete?
@@ -111,6 +125,7 @@
          [:div {:class (if @show-complete?
                          "col-md-4"
                          "col-md-6")}
+
           [:h3 (clojure.string/capitalize title)
            [:button.btn.btn-light.float-right
             {:on-click #(do
