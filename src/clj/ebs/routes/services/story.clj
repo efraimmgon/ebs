@@ -105,12 +105,12 @@
 (defn update-story!
   "Update a story record in the db. Returns the updated story."
   [story]
-  (let [now (common/now)
-        old (fsdb/get-by-id :story (:story/id story))]
+  (if-not (fsdb/get-by-id :story (:id story))
+    (response/not-found {:result :not-found})
     (response/ok
      (fsdb/update! :story
-                   (assoc (merge old story)
-                          :updated_at now)))))
+                   (assoc story
+                          :updated_at (common/now))))))
 
 (defn delete-story!
   "Delete a story record in the db. Returns the deleted story."

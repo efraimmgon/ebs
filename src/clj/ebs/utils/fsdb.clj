@@ -56,7 +56,7 @@
   (get-in @settings [:tables tname :path]))
 
 (defn table-file
-  "Return the file for the table dir/record, if it exists."
+  "Return the io/file for the table dir/record, if it exists."
   ([tname]
    (table-file tname nil))
   ([tname id]
@@ -65,6 +65,18 @@
                     (io/file path))]
        (when (fs/exists? file)
          file)))))
+
+(defn use-qualified-keywords?
+  "Returns true if the settings file has the :use-qualified-keywords? set to true."
+  []
+  (:use-qualified-keywords? @settings))
+
+(defn get-record-key
+  "Returns the keyword to be used in the table record."
+  [tname field]
+  (if (use-qualified-keywords?)
+    (keyword (name tname) (name field))
+    field))
 
 ;;; ----------------------------------------------------------------------------
 ;;; Settings
@@ -192,24 +204,33 @@
   ; adding the data to the db.
   (let [id (next-id! tname)
         data (assoc data
-                    (if (:use-qualified-keywords? @settings)
-                      (keyword (name tname) "id")
-                      :id)
+                    (get-record-key tname :id)
                     id)]
     (save-edn! (io/file
                 (table-path tname)
                 (str id))
                data)))
 
-(defn update!
-  "Updates the record for the given table id."
+(defn hard-update!
+  "Updates the record for the given table id, replacing all its value for the
+   value of `data`."
   [tname data]
-  (when-let [f (table-file tname
-                           (get data
-                                (if (:use-qualified-keywords? @settings)
-                                  (keyword (name tname) "id")
-                                  :id)))]
-    (save-edn! f data)))
+  (let [id (get data
+                (get-record-key tname :id))
+        file (table-file tname id)]
+    (save-edn! file data)))
+
+(defn update!
+  "Updates the record for the given table id, only for the keys given in `data`."
+  [tname data]
+  (let [id (get data
+                (if (:use-qualified-keywords? @settings)
+                  (keyword (name tname) "id")
+                  :id))
+        file (table-file tname id)
+        old-data (get-by-id tname id)]
+    (save-edn! file
+               (merge old-data data))))
 
 (defn delete!
   "Deletes the record at the given file. If successful returns true. If the
@@ -217,10 +238,6 @@
   [tname id]
   (some-> (table-file tname id)
           fs/delete))
-
-; Now that I have completed some basic functionaly I realized that I am missing
-; some crucial features. 
-; - id counter 
 
 (comment
 

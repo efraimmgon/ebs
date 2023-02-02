@@ -10,68 +10,98 @@
   [id]
   (contains? @(rf/subscribe [:task/temporary]) id))
 
-(defn story-list-item
-  "Component to display a task."
-  [{:keys [id status estimate elapsed_time]}]
-  (r/with-let [path [:story/tasks-map id]
-               task (rf/subscribe [:query path])
-               focused? (r/atom false)]
-    [:div
-     {:on-focus #(swap! focused? not)
-      :on-blur #(swap! focused? not)}
+(defn create-task-ui
+  [path {:keys [id status current_estimate elapsed_time] :as task}]
 
-     [:div
-      (when (and estimate elapsed_time)
-        [:div.float-right
-         [:small.text-muted
-          (str elapsed_time "/" estimate " minutes")]])
-      [:div.form-row
-       [:div.form-group.col-md-1
-        [:input.form-control.form-check-input
-         {:type "checkbox"
-          :checked (= status "complete")
-          :on-change #(rf/dispatch [:assoc-in (conj path :status)
-                                    (if (= status "complete")
-                                      "pending"
-                                      "complete")])}]]
-       [:div.form-group.col-md-7
-        [forms/textarea
-         {:name (conj path :title)
-          :rows 1
-          :class "form-control"
-          :auto-focus (temporary-id? id)}]]
-       [:div.form-group.col-md-2
-        [forms/input
-         {:type :number
-          :name (conj path :current_estimate)
-          :class "form-control"}]]
-       [:div.form-group.col-md-2
-        [:input.form-control
-         {:type "number"
-          :disabled true
-          :value (or elapsed_time "")}]]]
-      (when (or @focused? (temporary-id? id))
-        (if (temporary-id? id)
-          [:div:div.form-row
-           [:div.form-group.col-md-1]
-           [:div.form-group.col-md-11
-            [:button.btn.btn-primary
-             {:on-click #(rf/dispatch [:task/create! @task])}
-             "Create"] " "
-            [:button.btn.btn-danger
-             {:on-click #(rf/dispatch [:task/delete! id])}
-             "Cancel"]]]
-          [:div.form-row
-           [:div.form-group.col-md-1]
-           [:div.form-group.col-md-11
-            [:button.btn.btn-primary
-             {:on-click #(do
-                           (swap! focused? not)
-                           (rf/dispatch [:task/update! @task]))}
-             "Save"] " "
-            [:button.btn.btn-danger
-             {:on-click #(rf/dispatch [:task/delete! id])}
-             "Delete"]]]))]]))
+  [:div
+   (when (and current_estimate elapsed_time)
+     [:div.float-right
+      [:small.text-muted
+       (str elapsed_time " / " current_estimate " minutes")]])
+   [:div.form-row
+    [:div.form-group.col-md-1
+     [:input.form-control.form-check-input
+      {:type "checkbox"
+       :checked (= status "complete")
+       :on-change #(rf/dispatch [:assoc-in (conj path :status)
+                                 (if (= status "complete")
+                                   "pending"
+                                   "complete")])}]]
+    [:div.form-group.col-md-8
+     [forms/textarea
+      {:name (conj path :title)
+       :rows 1
+       :class "form-control"
+       :auto-focus (temporary-id? id)}]]
+    [:div.form-group.col-md-1
+     [forms/input
+      {:type :number
+       :name (conj path :current_estimate)
+       :class "form-control"}]]
+    [:div.form-group.col-md-1
+     [:input.form-control
+      {:type "number"
+       :disabled true
+       :value (or elapsed_time "")}]]
+    [:div.form-group.col-md-1
+     ""]]
+
+   [:div.form-row
+    [:div.form-group.col-md-1]
+    [:div.form-group.col-md-11
+     [:button.btn.btn-primary
+      {:on-click #(rf/dispatch [:task/create! task])}
+      "Create"] " "
+     [:button.btn.btn-danger
+      {:on-click #(rf/dispatch [:task/delete! id])}
+      "Cancel"]]]])
+
+(defn update-task-ui
+  [path {:keys [id status current_estimate elapsed_time]}]
+
+  [:div
+   (when (and current_estimate elapsed_time)
+     [:div.float-right
+      [:small.text-muted
+       (str elapsed_time "/" current_estimate " minutes")]])
+   [:div.form-row
+    [:div.form-group.col-md-1
+     [:input.form-control.form-check-input
+      {:type "checkbox"
+       :checked (= status "complete")
+       :on-change #(rf/dispatch [:task/update-status!
+                                 id
+                                 (if (= status "complete")
+                                   "pending"
+                                   "complete")])}]]
+    [:div.form-group.col-md-8
+     [forms/textarea
+      {:name (conj path :title)
+       :rows 1
+       :class "form-control"
+       :auto-focus (temporary-id? id)}]]
+    [:div.form-group.col-md-1
+     [forms/input
+      {:type :number
+       :name (conj path :current_estimate)
+       :class "form-control"}]]
+    [:div.form-group.col-md-1
+     [:input.form-control
+      {:type "number"
+       :disabled true
+       :value (or elapsed_time "")}]]
+    [:div.form-group.col-md-1
+     [:button.btn.btn-light
+      {:on-click #(rf/dispatch [:task/delete! id])}
+      [:i.material-icons.md-18 "delete"]]]]])
+
+(defn task-item
+  [{:keys [id] :as task}]
+  (r/with-let [path [:story/tasks-map id]]
+
+    (if (temporary-id? id)
+      [create-task-ui path task]
+      [update-task-ui path task])))
 
 (defn tasks-ui
   "Component to display a list of tasks."
@@ -82,39 +112,24 @@
     [:div
      [:h4 "Tasks"]
 
-     #_(when (seq @tasks)
-         [:ul.list-group
-          [:li.list-group-item
-           [:div.form-row.text-center
-            [:div.form-group.col-md-1
-             [:label "Done?"]]
-            [:div.form-group.col-md-7
-             [:label "Title"]]
-            [:div.form-group.col-md-2
-             [:label "Time Estimate"]]
-            [:div.form-group.col-md-2
-             [:label "Elapsed Time"]]]]
-          (doall
-           (for [task @tasks]
-             ^{:key (:id task)}
-             [story-list-item task]))])
-     ;; same code as the block above, but don't use  list-group or list-group-item,
-     ;; just rows and cols
      (when (seq @tasks)
+
        [:div
         [:div.form-row.text-center
          [:div.form-group.col-md-1
           [:label "Done?"]]
-         [:div.form-group.col-md-7
+         [:div.form-group.col-md-8
           [:label "Title"]]
-         [:div.form-group.col-md-2
-          [:label "Time Estimate"]]
-         [:div.form-group.col-md-2
-          [:label "Elapsed Time"]]]
-        (doall
-         (for [task @tasks]
-           ^{:key (:id task)}
-           [story-list-item task]))])
+         [:div.form-group.col-md-1
+          [:label "Estimate"]]
+         [:div.form-group.col-md-1
+          [:label "Elapsed"]]
+         [:div.form-group.col-md-1
+          [:label "Actions"]]]
+
+        (for [task @tasks]
+          ^{:key (:id task)}
+          [task-item task])])
 
      (when  (empty? @new-task?)
        [:button.btn.btn-light

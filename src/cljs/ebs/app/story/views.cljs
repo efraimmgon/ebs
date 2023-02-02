@@ -3,6 +3,7 @@
    clojure.string
    [reagent.core :as r]
    [re-frame.core :as rf]
+   [oops.core :as oops]
    [ebs.app.timer.views :as timer]
    [ebs.app.task.views :as task]
    [ebs.utils.components :as c]
@@ -76,7 +77,7 @@
      {:header "New Story"
 
       :attrs {:on-key-down
-              #(case (.-key %)
+              #(case (oops/oget % "key")
                  "Escape" (cancel-handler)
                  "Enter" (create-handler)
                  nil)}

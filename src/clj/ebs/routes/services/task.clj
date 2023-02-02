@@ -61,9 +61,9 @@
                    :task/elapsed_time]))
 
 (s/def :task/UpdateTask
-  (s/keys :req-un [:task/id
-                   :task/story_id]
-          :opt-un [:task/title
+  (s/keys :req-un [:task/id]
+          :opt-un [:task/story_id
+                   :task/title
                    :task/status
                    :task/current_estimate
                    :task/elapsed_time
@@ -110,14 +110,12 @@
 (defn update-task!
   "Update a task record in the db. Returns the updated task."
   [task]
-  (prn :task task)
-  (if-let [old-task (fsdb/get-by-id :task (:id task))]
+  (if (empty? (fsdb/get-by-id :task (:id task)))
+    (response/not-found {:result {:message "Task not found."}})
     (response/ok
      (fsdb/update! :task
-                   (merge old-task
-                          (assoc task
-                                 :updated_at (common/now)))))
-    (response/not-found {:result {:message "Task not found."}})))
+                   (assoc task
+                          :updated_at (common/now))))))
 
 (defn delete-task!
   "Delete a task record by id."

@@ -5,8 +5,6 @@
    [ebs.utils.fsdb :as fsdb]
    [ring.util.http-response :as response]))
 
-(defn now [] (java.util.Date.))
-
 ;;; ---------------------------------------------------------------------------
 ;;; DOMAIN
 
@@ -49,7 +47,7 @@
 (defn create-project!
   "Create a project record in the db. Returns the created project."
   [project]
-  (let [now (now)]
+  (let [now (common/now)]
     (response/ok
      (fsdb/create! :project
                    (assoc project
@@ -59,13 +57,12 @@
 (defn update-project!
   "Update a project record in the db. Returns the updated project."
   [project]
-  (prn :project project)
-  (response/ok
-   (let [old (fsdb/get-by-id :project (:id project))
-         project (merge old project)]
+  (if-not (fsdb/get-by-id :project (:id project))
+    (response/bad-request {:error :not-found})
+    (response/ok
      (fsdb/update! :project
                    (assoc project
-                          :updated_at (now))))))
+                          :updated_at (common/now))))))
 
 (defn delete-project!
   "Delete a project record in the db."
