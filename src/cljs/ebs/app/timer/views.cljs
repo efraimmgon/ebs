@@ -70,7 +70,7 @@
 (defn timer-ui
   "Timer UI"
   []
-  (r/with-let [tasks (rf/subscribe [:story/tasks-list])
+  (r/with-let [tasks (rf/subscribe [:tasks/all])
                state (rf/subscribe [:timer/state])
                current-session (rf/subscribe [:timer/current-session])
                time-remaining (rf/subscribe [:timer/time-remaining])]

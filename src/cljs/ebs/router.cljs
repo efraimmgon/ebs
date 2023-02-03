@@ -51,7 +51,7 @@
          :controllers [{:parameters {:path [:project-id]}
                         :start (fn [_]
                                  (rf/dispatch
-                                  [:assoc-in [:story/tasks-map] nil]))}]}]
+                                  [:assoc-in [:tasks/tree] nil]))}]}]
        ["/{story-id}"
         {:parameters {:path {:story-id int?}}
          :controllers [{:parameters {:path [:project-id :story-id]}

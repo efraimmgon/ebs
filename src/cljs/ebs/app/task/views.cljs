@@ -100,7 +100,7 @@
 
 (defn task-item
   [{:keys [id] :as task}]
-  (r/with-let [path [:story/tasks-map id]]
+  (r/with-let [path [:tasks/tree id]]
 
     (if (temporary-id? id)
       [create-task-ui path task]
@@ -110,7 +110,7 @@
   "Component to display a list of tasks."
   []
   (r/with-let [story (rf/subscribe [:story/active])
-               tasks (rf/subscribe [:story/tasks-list])
+               tasks (rf/subscribe [:tasks/all])
                new-task? (rf/subscribe [:task/temporary])]
     [:div
      [:h4 "Tasks"]

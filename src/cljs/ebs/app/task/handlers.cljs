@@ -15,13 +15,13 @@
   [db id]
   (-> db
       (update :task/temporary disj id)
-      (update :story/tasks-map dissoc id)))
+      (update :tasks/tree dissoc id)))
 
 (defn remove-task
   "Removes a task from the db."
   [db id]
   (-> db
-      (update :story/tasks-map dissoc id)))
+      (update :tasks/tree dissoc id)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Handlers
@@ -35,7 +35,7 @@
                              (assoc acc (:id task) task))
                            {}
                            tasks)]
-     {:db (assoc db :story/tasks-map tasks-map)})))
+     {:db (assoc db :tasks/tree tasks-map)})))
 
 (rf/reg-event-fx
  :story/load-tasks
@@ -54,7 +54,7 @@
  (fn [{:keys [db]} [story-id]]
    (let [id (.getTime (js/Date.))]
      {:db (-> db
-              (assoc-in [:story/tasks-map id]
+              (assoc-in [:tasks/tree id]
                         {:id id
                          :story_id story-id
                          :status "pending"
@@ -67,7 +67,7 @@
  (fn [{:keys [db]} [temp-id task]]
    {:db (-> db
             (remove-temporary-task temp-id)
-            (assoc-in [:story/tasks-map (:id task)]
+            (assoc-in [:tasks/tree (:id task)]
                       task))}))
 
 (rf/reg-event-fx
@@ -90,7 +90,7 @@
  :task/update-success
  events/base-interceptors
  (fn [{:keys [db]} [task]]
-   {:db (assoc-in db [:story/tasks-map (:id task)] task)}))
+   {:db (assoc-in db [:tasks/tree (:id task)] task)}))
 
 (rf/reg-event-fx
  :task/update!
@@ -136,13 +136,19 @@
 ;;; ---------------------------------------------------------------------------
 ;;; Subscriptions
 
-(rf/reg-sub :story/tasks-map events/query)
+(rf/reg-sub :tasks/tree events/query)
 (rf/reg-sub :task/temporary events/query)
 
 (rf/reg-sub
- :story/tasks-list
- :<- [:story/tasks-map]
+ :tasks/all
+ :<- [:tasks/tree]
  (fn [tasks-map]
    (->> tasks-map
         vals
         (sort-by :id))))
+
+(rf/reg-sub
+ :tasks/pending
+ :<- [:tasks/all]
+ (fn [tasks]
+   (filter #(= "pending" (:status %)) tasks)))
