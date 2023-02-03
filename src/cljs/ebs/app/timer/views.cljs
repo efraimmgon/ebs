@@ -8,6 +8,27 @@
    ebs.app.timer.handlers
    [ebs.utils.datetime :as datetime]))
 
+; ------------------------------------------------------------------------------
+; Utils
+; ------------------------------------------------------------------------------
+
+(defn temporary-id?
+  "Returns true if the id is a temporary id (a gensym)."
+  [id]
+  (contains? @(rf/subscribe [:task/temporary]) id))
+
+(defn display?
+  [tasks]
+  (let [tasks-count (count @tasks)
+        temp-tasks-count (count @(rf/subscribe [:task/temporary]))]
+    (or (> tasks-count 1)
+        (and (= tasks-count 1)
+             (not= temp-tasks-count 1)))))
+
+; ------------------------------------------------------------------------------
+; Views
+; ------------------------------------------------------------------------------
+
 (defn start-timer-button
   []
   [:button.btn.btn-info.btn-sm
@@ -32,16 +53,13 @@
     (when (nil? @selected)
       (rf/dispatch-sync [:assoc-in [:timer/task] (-> @tasks first :id)]))
     (when (seq @tasks)
-      [:div.col-sm-7
-       [:select.form-control.form-control-sm
-        {:value (or @selected "")
-         :on-change #(rf/dispatch [:assoc-in [:timer/task]
-                                   (-> % .-target .-value js/parseInt)])}
-        (for [task @tasks]
-          ^{:key (:id task)}
-          [:option {:value (:id task)} (:title task)])]])))
-
-
+      [:select.form-control.form-control-sm
+       {:value (or @selected "")
+        :on-change #(rf/dispatch [:assoc-in [:timer/task]
+                                  (-> % .-target .-value js/parseInt)])}
+       (for [task @tasks]
+         ^{:key (:id task)}
+         [:option {:value (:id task)} (:title task)])])))
 
 (defn time-remaining-ui
   "Displays the time remaining in the current interval, in the format mm:ss."
@@ -66,10 +84,13 @@
      [:div.form-group.row
 
       [:label.col-sm-1.col-form-label "Task"]
-      [select-task tasks]
+      [:div.col-sm-7
+       (if (display? tasks)
+         [select-task tasks]
+         [:div.col-form-label.text-muted "Add a task to use the timer."])]
 
       [:div.col-sm-4
-       (when (= :stopped @state)
+       (when (and (display? tasks) (= :stopped @state))
          [start-timer-button])
        " "
        (when (and (= :stopped @state)

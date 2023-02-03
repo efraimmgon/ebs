@@ -58,42 +58,45 @@
 
 (defn update-task-ui
   [path {:keys [id status current_estimate elapsed_time]}]
-
-  [:div
-   (when (and current_estimate elapsed_time)
-     [:div.float-right
-      [:small.text-muted
-       (str elapsed_time "/" current_estimate " minutes")]])
-   [:div.form-row
-    [:div.form-group.col-md-1
-     [:input.form-control.form-check-input
-      {:type "checkbox"
-       :checked (= status "complete")
-       :on-change #(rf/dispatch [:task/update-status!
-                                 id
-                                 (if (= status "complete")
-                                   "pending"
-                                   "complete")])}]]
-    [:div.form-group.col-md-8
-     [forms/textarea
-      {:name (conj path :title)
-       :rows 1
-       :class "form-control"
-       :auto-focus (temporary-id? id)}]]
-    [:div.form-group.col-md-1
-     [forms/input
-      {:type :number
-       :name (conj path :current_estimate)
-       :class "form-control"}]]
-    [:div.form-group.col-md-1
-     [:input.form-control
-      {:type "number"
-       :disabled true
-       :value (or elapsed_time "")}]]
-    [:div.form-group.col-md-1
-     [:button.btn.btn-light
-      {:on-click #(rf/dispatch [:task/delete! id])}
-      [:i.material-icons.md-18 "delete"]]]]])
+  (r/with-let [task (rf/subscribe [:query path])]
+    [:div
+     (when (and current_estimate elapsed_time)
+       [:div.float-right
+        [:small.text-muted
+         (str elapsed_time "/" current_estimate " minutes")]])
+     [:div.form-row
+      [:div.form-group.col-md-1
+       [:input.form-control.form-check-input
+        {:type "checkbox"
+         :checked (= status "complete")
+         :on-change #(do (rf/dispatch-sync
+                          [:assoc-in (conj path :status)
+                           (if (= status "complete")
+                             "pending"
+                             "complete")])
+                         (rf/dispatch [:task/update! @task]))}]]
+      [:div.form-group.col-md-8
+       [forms/textarea
+        {:name (conj path :title)
+         :rows 1
+         :class "form-control"
+         :auto-focus (temporary-id? id)
+         :on-blur #(rf/dispatch [:task/update! @task])}]]
+      [:div.form-group.col-md-1
+       [forms/input
+        {:type :number
+         :name (conj path :current_estimate)
+         :class "form-control"
+         :on-blur #(rf/dispatch [:task/update! @task])}]]
+      [:div.form-group.col-md-1
+       [:input.form-control
+        {:type "number"
+         :disabled true
+         :value (or elapsed_time "")}]]
+      [:div.form-group.col-md-1
+       [:button.btn.btn-light
+        {:on-click #(rf/dispatch [:task/delete! id])}
+        [:i.material-icons.md-18 "delete"]]]]]))
 
 (defn task-item
   [{:keys [id] :as task}]
@@ -125,7 +128,7 @@
          [:div.form-group.col-md-1
           [:label "Elapsed"]]
          [:div.form-group.col-md-1
-          [:label "Actions"]]]
+          [:label ""]]]
 
         (for [task @tasks]
           ^{:key (:id task)}

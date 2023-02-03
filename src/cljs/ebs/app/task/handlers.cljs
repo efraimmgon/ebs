@@ -76,8 +76,8 @@
  (fn [_ [task]]
    (let [new-task (dissoc task :id)
          new-task (if (:original_estimate new-task)
-                    (assoc new-task :current_estimate (:original_estimate new-task))
-                    new-task)]
+                    new-task
+                    (assoc new-task :original_estimate (:current_estimate new-task)))]
      {:http-xhrio {:method :post
                    :uri "/api/tasks"
                    :format (ajax/json-request-format)
@@ -93,25 +93,14 @@
    {:db (assoc-in db [:story/tasks-map (:id task)] task)}))
 
 (rf/reg-event-fx
- :task/update-status!
- events/base-interceptors
- (fn [{:keys [db]} [task-id status]]
-   {:db (assoc-in db [:story/tasks-map task-id :status] status)
-    :http-xhrio {:method :put
-                 :uri (str "/api/tasks/" task-id)
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :params {:id task-id
-                          :status status}
-                 :on-success [:task/update-success]
-                 :on-failure [:common/set-error]}}))
-
-(rf/reg-event-fx
  :task/update!
  events/base-interceptors
  (fn [_ [task]]
    (let [ks [:id :story_id :title :status :current_estimate :original_estimate]
-         new-task (select-keys task ks)]
+         new-task (select-keys task ks)
+         new-task (if (:original_estimate new-task)
+                    new-task
+                    (assoc new-task :original_estimate (:current_estimate new-task)))]
      {:http-xhrio {:method :put
                    :uri (str "/api/tasks/" (:id task))
                    :format (ajax/json-request-format)
