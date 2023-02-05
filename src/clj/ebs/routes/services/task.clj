@@ -7,22 +7,7 @@
 
 ;;; ---------------------------------------------------------------------------
 ;;; DOMAIN
-
-; An interval is a time period between two timestamps. It is represented by a
-; map with a start and end key.
-
-(s/def :interval/id int?)
-(s/def :interval/task_id int?)
-(s/def :interval/start inst?)
-(s/def :interval/end inst?)
-
-
-; - A task belongs to a story.
-; - A task has an id.
-; - A task has a story_id
-; - A task has a title.
-; - A task has a status. ("pending" "complete")
-; - A task has a original estimate, a current estimate, a elapsed time.
+;;; ---------------------------------------------------------------------------
 
 (s/def :task/id int?)
 (s/def :task/story_id int?)
