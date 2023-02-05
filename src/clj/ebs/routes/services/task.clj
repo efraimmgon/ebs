@@ -110,12 +110,11 @@
 (defn update-task!
   "Update a task record in the db. Returns the updated task."
   [task]
-  (if (empty? (fsdb/get-by-id :task (:id task)))
-    (response/not-found {:result {:message "Task not found."}})
-    (response/ok
-     (fsdb/update! :task
-                   (assoc task
-                          :updated_at (common/now))))))
+  (if-let [ret (fsdb/update! :task
+                             (assoc task
+                                    :updated_at (common/now)))]
+    (response/ok ret)
+    (response/not-found {:result {:message "Task not found."}})))
 
 (defn delete-task!
   "Delete a task record by id."

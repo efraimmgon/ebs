@@ -57,12 +57,11 @@
 (defn update-project!
   "Update a project record in the db. Returns the updated project."
   [project]
-  (if-not (fsdb/get-by-id :project (:id project))
-    (response/bad-request {:error :not-found})
-    (response/ok
-     (fsdb/update! :project
-                   (assoc project
-                          :updated_at (common/now))))))
+  (if-let [ret (fsdb/update! :project
+                             (assoc project
+                                    :updated_at (common/now)))]
+    (response/ok ret)
+    (response/bad-request {:error :not-found})))
 
 (defn delete-project!
   "Delete a project record in the db."

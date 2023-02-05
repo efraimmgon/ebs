@@ -114,7 +114,7 @@
                                    @statuses)]
     [views/base-ui
      [:div
-      [:h1 "Stories"
+      [:h1 (:title @project)
        [extra-options project]]]
 
      [:div.row

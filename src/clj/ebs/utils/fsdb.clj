@@ -213,15 +213,17 @@
 
 (defn hard-update!
   "Updates the record for the given table id, replacing all its value for the
-   value of `data`."
+   value of `data`. If a record can't be found, returns nil."
   [tname data]
   (let [id (get data
                 (get-record-key tname :id))
         file (table-file tname id)]
-    (save-edn! file data)))
+    (when file
+      (save-edn! file data))))
 
 (defn update!
-  "Updates the record for the given table id, only for the keys given in `data`."
+  "Updates the record for the given table id, only for the keys given in `data`.
+   If a record can't be found, returns nil."
   [tname data]
   (let [id (get data
                 (if (:use-qualified-keywords? @settings)
@@ -229,8 +231,9 @@
                   :id))
         file (table-file tname id)
         old-data (get-by-id tname id)]
-    (save-edn! file
-               (merge old-data data))))
+    (when file
+      (save-edn! file
+                 (merge old-data data)))))
 
 (defn delete!
   "Deletes the record at the given file. If successful returns true. If the
