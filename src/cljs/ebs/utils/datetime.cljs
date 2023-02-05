@@ -2,7 +2,9 @@
   (:require
    clojure.string))
 
-(defn datetime-out [string]
+(defn datetime-out
+  "Converts a string to a format that can be parsed by the server"
+  [string]
   (when (seq string)
     (let [[_ time] (clojure.string/split string #"T")
           time-coll (clojure.string/split time #":")]
@@ -10,7 +12,9 @@
         (str string "Z")
         (str string ":00Z")))))
 
-(defn datetime-in [string]
+(defn datetime-in
+  "Converts a string to a format that can be parsed by the client"
+  [string]
   (if (clojure.string/includes? string ".")
     (-> string (clojure.string/split #"\.") first)
     (->> string drop-last (apply str))))

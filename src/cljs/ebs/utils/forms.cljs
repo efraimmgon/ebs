@@ -104,18 +104,39 @@
       [:input (assoc edited-attrs
                      :value (or (get-stored-val name) default-value))])))
 
+(defn set-height! [elem value]
+  (set! (.-height (.-style elem)) value))
+
 (defn textarea
   [{:keys [name default-value] :as attrs}]
   (let [name (make-vec name)
         edited-attrs
-        (merge {:on-change (make-handler->set! name target-value)}
-               (-> attrs
-                   clean-attrs))]
-    (fn []
-      (maybe-set-default!
-       {:path name :default? default-value :data-type :scalar})
-      [:textarea (assoc edited-attrs
-                        :value (or (get-stored-val name) default-value))])))
+        (merge
+         {:on-change (make-handler->set! name target-value)
+          :on-input (fn [event]
+                      (let [elt (.-target event)]
+                        (set-height! elt (str (.-scrollHeight elt) "px"))))}
+         (-> attrs
+             clean-attrs))]
+
+    (r/create-class
+     {:display-name (str name)
+
+      :component-did-mount
+      (fn [this]
+        (prn "inside" name)
+        (. (js/$ js/document) ready
+           (fn []
+             (-> (js/$ "textarea")
+                 (.trigger "input")))))
+
+      :reagent-render
+      (fn []
+        (maybe-set-default!
+         {:path name :default? default-value :data-type :scalar})
+        [:textarea
+         (assoc edited-attrs
+                :value (or (get-stored-val name) default-value))])})))
 
 
 ; NOTE: js types can be used as values, but not cljs 
