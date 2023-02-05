@@ -11,6 +11,7 @@
    [reitit.ring.middleware.parameters :as parameters]
    [ebs.middleware.formats :as formats]
    [ebs.middleware.exception :as exception]
+   [ebs.routes.services.interval :as interval]
    [ebs.routes.services.project :as project]
    [ebs.routes.services.story :as story]
    [ebs.routes.services.task :as task]
@@ -80,6 +81,38 @@
 
 ;;; -----------------------------------------------------------------------
 ;;; Routes
+
+(defn interval-routes
+  "Return a vector of interval routes."
+  []
+  ["/intervals"
+   [""
+    {:get {:summary "Return all interval records."
+           :parameters {:body {:task-id int?}}
+           :responses {200 {:body :interval/intervals}}
+           :handler (fn [{:keys [parameters]}]
+                      (interval/get-task-intervals
+                       (get-in parameters [:body :task-id])))}
+     :post {:summary "Create an interval record in the db."
+            :parameters {:body :interval/NewInterval}
+            :responses {200 {:body :interval/Interval}}
+            :handler (fn [{:keys [parameters]}]
+                       (interval/create-interval!
+                        (:body parameters)))}}]
+
+   ["/{interval-id}"
+    {:parameters {:path {:interval-id int?}}}
+    [""
+     {:get {:summary "Return an interval record by id."
+            :responses {200 {:body :interval/Interval}}
+            :handler (fn [{:keys [parameters]}]
+                       (interval/get-interval-by-id
+                        (get-in parameters [:path :interval-id])))}
+      :delete {:summary "Delete an interval record."
+               :responses {200 {:body :result/Result}}
+               :handler (fn [{:keys [parameters]}]
+                          (interval/delete-interval!
+                           (get-in parameters [:path :interval-id])))}}]]])
 
 (defn task-routes
   "Return a vector of task routes."
@@ -259,7 +292,11 @@
                 :responses {200 {:body :result/Result}}
                 :handler (fn [{:keys [parameters]}]
                            (task/delete-task!
-                            (get-in parameters [:path :task-id])))}}]]]])
+                            (get-in parameters [:path :task-id])))}}]]]
+
+   ;; "/intervals/..."
+   ;; CRUD
+   (interval-routes)])
 
 
 (comment

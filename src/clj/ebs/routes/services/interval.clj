@@ -20,13 +20,18 @@
                    :interval/start
                    :interval/end]))
 
+(s/def :interval/NewInterval
+  (s/keys :req-un [:interval/task_id
+                   :interval/start
+                   :interval/end]))
+
 (s/def :interval/intervals (s/* :interval/Interval))
 
 ;;; ----------------------------------------------------------------------------
 ;;; ROUTES
 ;;; ----------------------------------------------------------------------------
 
-(defn get-intervals-by-task-id
+(defn get-task-intervals
   "Get all intervals for a given task id."
   [task-id]
   (if-let [rows (seq (fsdb/select :interval {:where #(= (:task_id %) task-id)}))]
