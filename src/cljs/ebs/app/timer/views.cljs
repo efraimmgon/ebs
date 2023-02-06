@@ -3,10 +3,7 @@
    clojure.string
    [reagent.core :as r]
    [re-frame.core :as rf]
-   [ebs.utils.components :as c]
-   [ebs.utils.forms :as forms]
-   ebs.app.timer.handlers
-   [ebs.utils.datetime :as datetime]))
+   ebs.app.timer.handlers))
 
 ; ------------------------------------------------------------------------------
 ; Utils

@@ -5,54 +5,62 @@
    [ebs.utils.events :as events]))
 
 (defn short-or-long-break
-  [interval-count long-break-interval]
+  "Takes the timer/settings map and returns :short-break or :long-break 
+   depending on the interval-count."
+  [{:keys [interval-count long-break-interval]}]
   (if (zero? (mod interval-count long-break-interval))
     :long-break
     :short-break))
-
-(short-or-long-break 0 4)
 
 (defn set-time-elapsed [db v] (assoc-in db [:timer/settings :time-elapsed] v))
 (defn update-time-elapsed [db f] (update-in db [:timer/settings :time-elapsed] f))
 (defn set-state [db v] (assoc-in db [:timer/settings :state] v))
 (defn set-current-session [db v] (assoc-in db [:timer/settings :current-session] v))
 
+
 (defn interval-success
+  "Common updates to db on a successful interval."
   [db]
   (-> db
       (set-state :stopped)
       (set-time-elapsed 0)))
 
 (defn start-work-interval
+  "Updates on db when starting a work interval."
   [db]
   (-> db
       (set-state :running)
       (set-current-session :work)))
 
 (defn start-break-interval
+  "Updates on db when starting a break interval."
   [db]
-  (let [break (short-or-long-break
-               (get-in db [:timer/settings :interval-count])
-               (get-in db [:timer/settings :long-break-interval]))]
+  (let [break (short-or-long-break (:timer/settings db))]
     (-> db
         (set-state :running)
         (set-current-session break))))
 
 (defn work-interval-success
+  "Updates on db when a work interval is successful."
   [db]
   (-> db
       interval-success
       (update-in [:timer/settings :interval-count] inc)
       (set-current-session
        (short-or-long-break
-        (inc (get-in db [:timer/settings :interval-count]))
-        (get-in db [:timer/settings :long-break-interval])))))
+        (update (:timer/settings db) :interval-count inc)))))
 
 (defn break-interval-success
+  "Updates on db when a break interval is successful."
   [db]
   (-> db
       interval-success
       (set-current-session :work)))
+
+(defn current-session-duration
+  "Returns the duration of the current session."
+  [{:keys [current-session] :as settings}]
+  (get settings current-session))
 
 ; ------------------------------------------------------------------------------
 ; HANDLERS
@@ -61,16 +69,16 @@
 (rf/reg-event-fx
  :timer/tick
  [rf/trim-v]
- (fn [{:keys [db]} [current-session]]
-   (let [{:keys [time-elapsed] :as settings} (:timer/settings db)
-         duration (get settings current-session)
+ (fn [{:keys [db]} _]
+   (let [{:keys [time-elapsed current-session] :as settings} (:timer/settings db)
+         duration (current-session-duration settings)
          timer-done? (>= time-elapsed duration)]
      (if timer-done?
        {:db (if (= current-session :work)
               (work-interval-success db)
               (break-interval-success db))}
        {:dispatch-later [{:ms 1000
-                          :dispatch [:timer/tick current-session]}]
+                          :dispatch [:timer/tick]}]
         :db (update-time-elapsed db inc)}))))
 
 (rf/reg-event-fx
@@ -81,7 +89,7 @@
          db-update-f (if (= current-session :work)
                        start-work-interval
                        start-break-interval)]
-     {:dispatch [:timer/tick current-session]
+     {:dispatch [:timer/tick]
       :db (db-update-f db)})))
 
 (rf/reg-event-fx
@@ -125,8 +133,8 @@
 (rf/reg-sub
  :timer/time-remaining
  :<- [:timer/settings]
- (fn [{:keys [current-session time-elapsed] :as settings}]
+ (fn [{:keys [time-elapsed] :as settings}]
    (-> settings
-       (get current-session)
+       current-session-duration
        (- time-elapsed)
        datetime/time-remaining)))

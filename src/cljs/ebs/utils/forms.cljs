@@ -122,14 +122,6 @@
     (r/create-class
      {:display-name (str name)
 
-      :component-did-mount
-      (fn [this]
-        (prn "inside" name)
-        (. (js/$ js/document) ready
-           (fn []
-             (-> (js/$ "textarea")
-                 (.trigger "input")))))
-
       :reagent-render
       (fn []
         (maybe-set-default!
