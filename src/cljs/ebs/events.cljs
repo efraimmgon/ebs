@@ -76,8 +76,8 @@
    :short-break (datetime/min->sec 5)
    :long-break (datetime/min->sec 15)
    :long-break-interval 4
+   :js-interval nil
    :interval-count 0
-   :time-elapsed 0
    :state :stopped
    :current-session :work})
 
