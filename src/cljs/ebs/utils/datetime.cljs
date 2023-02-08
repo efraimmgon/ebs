@@ -51,10 +51,17 @@
   [sec]
   (* sec 1000))
 
-(defn time-remaining
-  "Returns the time remaining in minutes and seconds."
-  [time-remain-seconds]
-  (let [time->minutes-remain (fn [seconds] (-> seconds (/ 60) (mod 60) int))
-        time->seconds-remain (fn [seconds] (-> seconds (mod 60) int))]
-    [(time->minutes-remain time-remain-seconds)
-     (time->seconds-remain time-remain-seconds)]))
+(defn ms->sec
+  "Convert milliseconds to seconds"
+  [ms]
+  (/ ms 1000))
+
+(defn ms->hours-mins-sec
+  "Returns a map with the hours, minutes and seconds of a number of milliseconds."
+  [ms]
+  (let [s (quot ms 1000)
+        m (quot s 60)
+        h (quot m 60)]
+    {:hours (mod h 24)
+     :minutes (mod m 60)
+     :seconds (mod s 60)}))

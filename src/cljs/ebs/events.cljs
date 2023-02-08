@@ -72,11 +72,12 @@
 ;;; Initial state
 
 (def timer-settings
-  {:work (datetime/min->sec 25)
-   :short-break (datetime/min->sec 5)
-   :long-break (datetime/min->sec 15)
+  {:work (datetime/min->ms 25)
+   :short-break (datetime/min->ms 5)
+   :long-break (datetime/min->ms 15)
    :long-break-interval 4
    :js-interval nil
+   :start-datetime nil
    :interval-count 0
    :state :stopped
    :current-session :work})

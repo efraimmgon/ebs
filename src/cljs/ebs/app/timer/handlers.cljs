@@ -17,6 +17,17 @@
 (defn set-state [db v] (assoc-in db [:timer/settings :state] v))
 (defn set-current-session [db v] (assoc-in db [:timer/settings :current-session] v))
 
+(defn time-elapsed
+  "Returns the number of milliseconds between two dates."
+  [start end]
+  (- (.getTime end) (.getTime start)))
+
+#_(assert (= {:hours 1 :minutes 12 :seconds 31}
+             (hours-mins-sec
+              (* 1000 (+ (* 60 60 1)
+                         (* 60 12)
+                         31)))))
+
 (defn interval-success
   "Common updates to db on a successful interval."
   [db]
@@ -29,7 +40,7 @@
   [db]
   (-> db
       (set-state :running)
-      (assoc-in [:timer/settings :start-date] (js/Date.))))
+      (assoc-in [:timer/settings :start-datetime] (js/Date.))))
 
 (defn start-work-interval
   "Updates on db when starting a work interval."
@@ -82,15 +93,20 @@
 (defn timer-done?
   "Returns true if the timer is done."
   [timer-settings]
-  (>= 0
-      (- (current-session-duration timer-settings)
-         (:time-elapsed @timer))))
+  (>= (:time-elapsed @timer)
+      (current-session-duration timer-settings)))
 
 (defn tick?
   "Returns true if the timer is running and not done."
   [timer-settings]
   (and (timer-running? timer-settings)
        (not (timer-done? timer-settings))))
+
+(defn tick!
+  "Updates the timer data."
+  [{:keys [start-datetime]}]
+  (swap! timer assoc :time-elapsed
+         (time-elapsed start-datetime (js/Date.))))
 
 (defn timer-updater
   "Updates the timer every second."
@@ -100,7 +116,7 @@
          (fn []
            (let [timer-settings (rf/subscribe [:timer/settings])]
              (if (tick? @timer-settings)
-               (swap! timer update :time-elapsed inc)
+               (tick! @timer-settings)
                (rf/dispatch [:timer/done]))))
          1000)]
 
@@ -120,31 +136,6 @@
 ; ------------------------------------------------------------------------------
 ; HANDLERS
 ; ------------------------------------------------------------------------------
-
-(rf/reg-event-fx
- :timer/tick
- [rf/trim-v]
- (fn [{:keys [db]} _]
-   (let [{:keys [time-elapsed current-session] :as settings} (:timer/settings db)
-         duration (current-session-duration settings)
-         timer-done? (>= time-elapsed duration)]
-     (if timer-done?
-       {:db (if (= current-session :work)
-              (work-interval-success db)
-              (break-interval-success db))}
-       {:dispatch-later [{:ms 1000
-                          :dispatch [:timer/tick]}]}))))
-
-#_(rf/reg-event-fx
-   :timer/start
-   events/base-interceptors
-   (fn [{:keys [db]} _]
-     (let [current-session (get-in db [:timer/settings :current-session])
-           db-update-f (if (= current-session :work)
-                         start-work-interval
-                         start-break-interval)]
-       {:dispatch [:timer/tick]
-        :db (db-update-f db)})))
 
 (rf/reg-event-fx
  :timer/start
@@ -202,4 +193,5 @@
    (-> settings
        current-session-duration
        (- (:time-elapsed @timer))
-       datetime/time-remaining)))
+       datetime/ms->hours-mins-sec
+       ((juxt :minutes :seconds)))))
