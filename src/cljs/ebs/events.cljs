@@ -78,8 +78,9 @@
    :long-break-interval 4
    :js-interval nil
    :start-datetime nil
+   :end-datetime nil
    :interval-count 0
-   :state :stopped
+   :state :idle
    :current-session :work})
 
 ; TODO: fetch data from the server.

@@ -3,7 +3,7 @@
    clojure.string
    [reagent.core :as r]
    [re-frame.core :as rf]
-   ebs.app.timer.handlers))
+   [ebs.app.timer.handlers :as handlers]))
 
 ; ------------------------------------------------------------------------------
 ; Utils
@@ -27,22 +27,30 @@
 ; ------------------------------------------------------------------------------
 
 (defn start-timer-button
-  []
+  [state]
   [:button.btn.btn-info.btn-sm
    {:on-click #(rf/dispatch [:timer/start])}
-   "Start timer"])
+   (if (= :paused @state)
+     "Resume"
+     "Start")])
 
-(defn stop-timer-button
+(defn pause-timer-button
   []
   [:button.btn.btn-info.btn-sm
-   {:on-click #(rf/dispatch [:timer/stop])}
-   "Stop timer"])
+   {:on-click #(rf/dispatch [:timer/pause])}
+   "Pause"])
 
 (defn skip-break-button
   []
   [:button.btn.btn-info.btn-sm
    {:on-click #(rf/dispatch [:timer/skip-break])}
    "Skip break"])
+
+(defn cancel-timer-button
+  []
+  [:button.btn.btn-warning.btn-sm
+   {:on-click #(rf/dispatch [:timer/cancel])}
+   "Cancel"])
 
 (defn select-task
   [tasks]
@@ -69,14 +77,13 @@
   []
   (r/with-let [tasks (rf/subscribe [:tasks/pending])
                state (rf/subscribe [:timer/state])
-               current-session (rf/subscribe [:timer/current-session])
-               time-remaining (rf/subscribe [:timer/time-remaining])]
+               current-session (rf/subscribe [:timer/current-session])]
     [:div
      [:h5
       [:span.material-icons "timer"]
       " Pomodoro Timer "
       [:span.badge.badge-danger.font-weight-bold
-       [time-remaining-ui @time-remaining]]]
+       [time-remaining-ui (handlers/time-remaining-for-ui)]]]
 
      [:div.form-group.row
 
@@ -87,11 +94,16 @@
          [:div.col-form-label.text-muted "Add a task to use the timer."])]
 
       [:div.col-sm-4
-       (when (and (display? tasks) (= :stopped @state))
-         [start-timer-button])
+       (when (and (display? tasks) (= :idle @state))
+         [start-timer-button state])
        " "
-       (when (and (= :stopped @state)
+       (when (and (= :idle @state)
                   (not= :work @current-session))
          [skip-break-button])
+       (when (= :paused @state)
+         [start-timer-button state])
        (when (= :running @state)
-         [stop-timer-button])]]]))
+         [pause-timer-button]) " "
+       (when (and (not= :idle @state)
+                  (= :work @current-session))
+         [cancel-timer-button])]]]))

@@ -1,9 +1,21 @@
 (ns ebs.app.timer.handlers
   (:require
+   [cljs-time.core :as time]
+   [clojure.spec.alpha :as s]
    [reagent.core :as r]
    [re-frame.core :as rf]
    [ebs.utils.datetime :as datetime]
    [ebs.utils.events :as events]))
+
+(defonce timer (r/atom {:time-remaining (* 1000 60 25)}))
+
+(s/def :timer/state #{:idle :paused :running})
+
+(defn time-remaining-for-ui
+  []
+  (-> (:time-remaining @timer)
+      datetime/ms->hours-mins-sec
+      ((juxt :minutes :seconds))))
 
 (defn short-or-long-break
   "Takes the timer/settings map and returns :short-break or :long-break 
@@ -13,34 +25,38 @@
     :long-break
     :short-break))
 
-(defn set-time-elapsed [timer v] (assoc timer :time-elapsed v))
-(defn set-state [db v] (assoc-in db [:timer/settings :state] v))
-(defn set-current-session [db v] (assoc-in db [:timer/settings :current-session] v))
+(defn set-state [db v]
+  (assoc-in db [:timer/settings :state] v))
 
-(defn time-elapsed
-  "Returns the number of milliseconds between two dates."
-  [start end]
-  (- (.getTime end) (.getTime start)))
+(defn set-current-session [db v]
+  (assoc-in db [:timer/settings :current-session] v))
 
-#_(assert (= {:hours 1 :minutes 12 :seconds 31}
-             (hours-mins-sec
-              (* 1000 (+ (* 60 60 1)
-                         (* 60 12)
-                         31)))))
+(defn set-time-remaining! [v]
+  (swap! timer assoc :time-remaining v))
 
 (defn interval-success
   "Common updates to db on a successful interval."
   [db]
   (-> db
-      (set-state :stopped)
-      (set-time-elapsed 0)))
+      (set-state :idle)
+      (assoc-in [:timer/settings :task] nil)
+      (assoc-in [:timer/settings :start-datetime] nil)
+      (assoc-in [:timer/settings :end-datetime] nil)))
+
+(defn end-datetime
+  "The end-datetime is the datetime now plus the time remaining for the timer."
+  []
+  (time/plus (time/now)
+             (time/millis (:time-remaining @timer))))
 
 (defn start-interval
   "Updates on db when starting an interval."
   [db]
   (-> db
       (set-state :running)
-      (assoc-in [:timer/settings :start-datetime] (js/Date.))))
+      (assoc-in [:timer/settings :task] (:timer/task db))
+      (assoc-in [:timer/settings :start-datetime] (time/now))
+      (assoc-in [:timer/settings :end-datetime] (end-datetime))))
 
 (defn start-work-interval
   "Updates on db when starting a work interval."
@@ -60,30 +76,27 @@
 (defn work-interval-success
   "Updates on db when a work interval is successful."
   [db]
-  (-> db
-      interval-success
-      (update-in [:timer/settings :interval-count] inc)
-      (set-current-session
-       (short-or-long-break
-        (update (:timer/settings db) :interval-count inc)))))
+  (let [db (update-in db [:timer/settings :interval-count] inc)
+        break (short-or-long-break (:timer/settings db))]
+    (set-time-remaining!
+     (if (= break :short-break)
+       @(rf/subscribe [:timer/short-break-duration])
+       @(rf/subscribe [:timer/long-break-duration])))
+    (-> db
+        interval-success
+        (set-current-session break))))
 
 (defn break-interval-success
   "Updates on db when a break interval is successful."
   [db]
+  (set-time-remaining! @(rf/subscribe [:timer/work-duration]))
   (-> db
       interval-success
       (set-current-session :work)))
 
-(defn current-session-duration
-  "Returns the duration of the current session."
-  [{:keys [current-session] :as settings}]
-  (get settings current-session))
-
 ; ------------------------------------------------------------------------------
 ; 2nd iteration
 ; ------------------------------------------------------------------------------
-
-(defonce timer (r/atom {}))
 
 (defn timer-running?
   "Returns true if the timer is running."
@@ -92,9 +105,9 @@
 
 (defn timer-done?
   "Returns true if the timer is done."
-  [timer-settings]
-  (>= (:time-elapsed @timer)
-      (current-session-duration timer-settings)))
+  [{:keys [end-datetime]}]
+  (time/after? (time/now)
+               end-datetime))
 
 (defn tick?
   "Returns true if the timer is running and not done."
@@ -102,11 +115,17 @@
   (and (timer-running? timer-settings)
        (not (timer-done? timer-settings))))
 
+(defn time-remaining
+  [datetime-now end-datetime]
+  (time/in-millis
+   (time/interval datetime-now
+                  end-datetime)))
+
 (defn tick!
   "Updates the timer data."
-  [{:keys [start-datetime]}]
-  (swap! timer assoc :time-elapsed
-         (time-elapsed start-datetime (js/Date.))))
+  [{:keys [end-datetime]}]
+  (set-time-remaining!
+   (time-remaining (time/now) end-datetime)))
 
 (defn timer-updater
   "Updates the timer every second."
@@ -122,20 +141,19 @@
 
     (rf/dispatch [:assoc-in [:timer/settings :js-interval] js-interval])))
 
+; ------------------------------------------------------------------------------
+; HANDLERS
+; ------------------------------------------------------------------------------
+
 (rf/reg-event-fx
  :timer/done
  events/base-interceptors
  (fn [{:keys [db]} _]
    (let [{:keys [js-interval current-session]} @(rf/subscribe [:timer/settings])]
-     (swap! timer assoc :time-elapsed 0)
      (js/clearInterval js-interval)
      {:db (if (= current-session :work)
             (work-interval-success db)
             (break-interval-success db))})))
-
-; ------------------------------------------------------------------------------
-; HANDLERS
-; ------------------------------------------------------------------------------
 
 (rf/reg-event-fx
  :timer/start
@@ -149,21 +167,33 @@
      {:db (db-update-f db)})))
 
 (rf/reg-event-fx
- :timer/stop
+ :timer/pause
  events/base-interceptors
  (fn [{:keys [db]} _]
-   {:db (-> db
-            (set-state :stopped)
-            (set-time-elapsed 0))}))
+   (let [{:keys [js-interval]} @(rf/subscribe [:timer/settings])]
+     (js/clearInterval js-interval)
+     {:db (set-state db :paused)})))
 
 (rf/reg-event-fx
  :timer/skip-break
  events/base-interceptors
  (fn [{:keys [db]} _]
+   (set-time-remaining! @(rf/subscribe [:timer/work-duration]))
    {:db (-> db
-            (set-state :stopped)
-            (set-time-elapsed 0)
+            (set-state :idle)
             (set-current-session :work))}))
+
+
+(rf/reg-event-fx
+ :timer/cancel
+ events/base-interceptors
+ (fn [{:keys [db]} _]
+   (let [{:keys [js-interval]} @(rf/subscribe [:timer/settings])]
+     (js/clearInterval js-interval)
+     (set-time-remaining! @(rf/subscribe [:timer/work-duration]))
+     {:db (-> db
+              (set-state :idle)
+              (set-current-session :work))})))
 
 ; ------------------------------------------------------------------------------
 ; SUBSCRIPTIONS
@@ -185,13 +215,20 @@
  (fn [settings]
    (:current-session settings)))
 
-; Returns the time duration of the current interval
 (rf/reg-sub
- :timer/time-remaining
+ :timer/work-duration
  :<- [:timer/settings]
  (fn [settings]
-   (-> settings
-       current-session-duration
-       (- (:time-elapsed @timer))
-       datetime/ms->hours-mins-sec
-       ((juxt :minutes :seconds)))))
+   (get settings :work)))
+
+(rf/reg-sub
+ :timer/short-break-duration
+ :<- [:timer/settings]
+ (fn [settings]
+   (get settings :short-break)))
+
+(rf/reg-sub
+ :timer/long-break-duration
+ :<- [:timer/settings]
+ (fn [settings]
+   (get settings :long-break)))
