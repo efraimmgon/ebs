@@ -81,7 +81,8 @@
    :end-datetime nil
    :interval-count 0
    :state :idle
-   :current-session :work})
+   :current-session :work
+   :session-done-audio (js/Audio. "/audio/tada.wav")})
 
 ; TODO: fetch data from the server.
 (def priorities

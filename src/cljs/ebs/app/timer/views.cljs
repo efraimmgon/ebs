@@ -16,7 +16,7 @@
 
 (defn display?
   [tasks]
-  (let [tasks-count (count @tasks)
+  (let [tasks-count (count tasks)
         temp-tasks-count (count @(rf/subscribe [:task/temporary]))]
     (or (> tasks-count 1)
         (and (= tasks-count 1)
@@ -52,6 +52,22 @@
    {:on-click #(rf/dispatch [:timer/cancel])}
    "Cancel"])
 
+(defn timer-control-buttons
+  [{:keys [tasks state current-session]}]
+  [:div.col-sm-4
+   (when (and (display? @tasks) (= :idle @state))
+     [start-timer-button state]) " "
+   (when (and (= :idle @state)
+              (not= :work @current-session))
+     [skip-break-button])
+   (when (= :paused @state)
+     [start-timer-button state])
+   (when (= :running @state)
+     [pause-timer-button]) " "
+   (when (and (not= :idle @state)
+              (= :work @current-session))
+     [cancel-timer-button])])
+
 (defn select-task
   [tasks]
   (r/with-let [selected (rf/subscribe [:timer/task])]
@@ -76,8 +92,8 @@
   "Timer UI"
   []
   (r/with-let [tasks (rf/subscribe [:tasks/pending])
-               state (rf/subscribe [:timer/state])
-               current-session (rf/subscribe [:timer/current-session])]
+               state (rf/subscribe [:timer/settings :state])
+               current-session (rf/subscribe [:timer/settings :current-session])]
     [:div
      [:h5
       [:span.material-icons "timer"]
@@ -89,21 +105,11 @@
 
       [:label.col-sm-1.col-form-label "Task"]
       [:div.col-sm-7
-       (if (display? tasks)
+       (if (display? @tasks)
          [select-task tasks]
          [:div.col-form-label.text-muted "Add a task to use the timer."])]
 
-      [:div.col-sm-4
-       (when (and (display? tasks) (= :idle @state))
-         [start-timer-button state])
-       " "
-       (when (and (= :idle @state)
-                  (not= :work @current-session))
-         [skip-break-button])
-       (when (= :paused @state)
-         [start-timer-button state])
-       (when (= :running @state)
-         [pause-timer-button]) " "
-       (when (and (not= :idle @state)
-                  (= :work @current-session))
-         [cancel-timer-button])]]]))
+      [timer-control-buttons
+       {:tasks tasks
+        :state state
+        :current-session current-session}]]]))

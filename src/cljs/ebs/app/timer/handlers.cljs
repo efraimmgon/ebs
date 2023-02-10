@@ -149,9 +149,12 @@
  :timer/done
  events/base-interceptors
  (fn [{:keys [db]} _]
-   (let [{:keys [js-interval current-session]} @(rf/subscribe [:timer/settings])]
-     (js/clearInterval js-interval)
-     {:db (if (= current-session :work)
+   (let [js-interval (rf/subscribe [:timer/settings :js-interval])
+         current-session (rf/subscribe [:timer/settings :current-session])
+         beep (rf/subscribe [:timer/beep])]
+     (.play @beep)
+     (js/clearInterval @js-interval)
+     {:db (if (= @current-session :work)
             (work-interval-success db)
             (break-interval-success db))})))
 
@@ -159,8 +162,8 @@
  :timer/start
  events/base-interceptors
  (fn [{:keys [db]} _]
-   (let [current-session (get-in db [:timer/settings :current-session])
-         db-update-f (if (= current-session :work)
+   (let [current-session (rf/subscribe [:timer/settings :current-session])
+         db-update-f (if (= @current-session :work)
                        start-work-interval
                        start-break-interval)]
      (timer-updater)
@@ -170,8 +173,8 @@
  :timer/pause
  events/base-interceptors
  (fn [{:keys [db]} _]
-   (let [{:keys [js-interval]} @(rf/subscribe [:timer/settings])]
-     (js/clearInterval js-interval)
+   (let [js-interval (rf/subscribe [:timer/settings :js-interval])]
+     (js/clearInterval @js-interval)
      {:db (set-state db :paused)})))
 
 (rf/reg-event-fx
@@ -188,8 +191,8 @@
  :timer/cancel
  events/base-interceptors
  (fn [{:keys [db]} _]
-   (let [{:keys [js-interval]} @(rf/subscribe [:timer/settings])]
-     (js/clearInterval js-interval)
+   (let [js-interval (rf/subscribe [:timer/settings :js-interval])]
+     (js/clearInterval @js-interval)
      (set-time-remaining! @(rf/subscribe [:timer/work-duration]))
      {:db (-> db
               (set-state :idle)
@@ -201,19 +204,13 @@
 
 (rf/reg-sub :timer/task events/query)
 
-(rf/reg-sub :timer/settings events/query)
-
 (rf/reg-sub
- :timer/state
- :<- [:timer/settings]
- (fn [settings]
-   (:state settings)))
-
-(rf/reg-sub
- :timer/current-session
- :<- [:timer/settings]
- (fn [settings]
-   (:current-session settings)))
+ :timer/settings
+ (fn [db [_ k]]
+   (let [settings (:timer/settings db)]
+     (if k
+       (get settings k)
+       settings))))
 
 (rf/reg-sub
  :timer/work-duration
@@ -232,3 +229,9 @@
  :<- [:timer/settings]
  (fn [settings]
    (get settings :long-break)))
+
+(rf/reg-sub
+ :timer/beep
+ :<- [:timer/settings]
+ (fn [settings]
+   (:session-done-audio settings)))

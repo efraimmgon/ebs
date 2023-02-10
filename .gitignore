@@ -22,3 +22,4 @@ profiles.clj
 
 
 figwheel_server.log
+resources/public/.DS_Store
