@@ -257,6 +257,8 @@
       [:input (assoc edited-attrs
                      :type :datetime-local
                      :value (or (get-stored-val temp)
+                                (when-let [v (get-stored-val name-vec)]
+                                  (datetime/to-datetime-local v))
                                 default-value
                                 ""))])))
 

@@ -142,7 +142,7 @@
 
 (defn story-ui
   "Component to display the story form."
-  [{:keys [title footer path]}]
+  [{:keys [title footer path story]}]
   [views/base-ui
    [c/card
     {:title title
@@ -209,17 +209,19 @@
              :value label}]))]
        [c/form-group
         "Created at"
-        [forms/input
+        [:input.form-control
          {:type :datetime-local
-          :name (conj path :created_at)
-          :class "form-control"
+          :value (if-let [created-at (:created_at @story)]
+                   (datetime/to-datetime-local-string created-at)
+                   "")
           :disabled true}]]
        [c/form-group
         "Updated at"
-        [forms/input
+        [:input.form-control
          {:type :datetime-local
-          :name (conj path :updated_at)
-          :class "form-control"
+          :value (if-let [updated-at (:updated_at @story)]
+                   (datetime/to-datetime-local-string updated-at)
+                   "")
           :disabled true}]]]]
 
 
@@ -235,6 +237,8 @@
      {:title "New Story"
 
       :path path
+
+      :story new-story
 
       :footer
       [:div
@@ -259,6 +263,8 @@
          "Delete"]]]
 
       :path path
+
+      :story story
 
       :footer
       [:div
