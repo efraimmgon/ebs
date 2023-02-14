@@ -9,7 +9,8 @@
    [ebs.core :refer [start-app]]
    [ebs.db.core]
    [conman.core :as conman]
-   [luminus-migrations.core :as migrations]))
+   [luminus-migrations.core :as migrations]
+   [java-time.api :as jt]))
 
 (alter-var-root #'s/*explain-out* (constantly expound/printer))
 
@@ -62,5 +63,13 @@
 
 
 (comment
+  (require '[java-time.api :as jt])
+
   (start)
   (restart))
+
+#_(jt/instant (jt/zoned-date-time (java.time.Instant/now) "America/Cuiaba"))
+
+#_(java.time.LocalDateTime/now)
+#_(java.time.Instant/now)
+#_(java.time.ZonedDateTime/now)

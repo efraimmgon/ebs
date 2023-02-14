@@ -1,23 +1,34 @@
 (ns ebs.utils.datetime
   (:require
-   clojure.string))
+   clojure.string
+   [cljs-time.core :as time]
+   [cljs-time.format :as tf]))
+
+(def iso-zoned-date (tf/formatter "yyyy-MM-dd'T'HH:mm:ss.SSSZ"))
+
+(def datetime-local (tf/formatter "yyyy-MM-dd'T'HH:mm"))
+
+(defn to-datetime-local-string [datetime]
+  (tf/unparse datetime-local datetime))
+
+(defn to-datetime-local [string]
+  (->> string
+       (tf/parse-local datetime-local)))
 
 (defn datetime-out
-  "Converts a string to a format that can be parsed by the server"
-  [string]
-  (when (seq string)
-    (let [[_ time] (clojure.string/split string #"T")
-          time-coll (clojure.string/split time #":")]
-      (if (= 3 (count time-coll))
-        (str string "Z")
-        (str string ":00Z")))))
+  "Converts a goog.date.DateTime obj to a format that can be parsed by 
+   the server"
+  [datetime-obj]
+  (->> datetime-obj
+       time/to-utc-time-zone
+       (tf/unparse iso-zoned-date)))
 
 (defn datetime-in
   "Converts a string to a format that can be parsed by the client"
   [string]
-  (if (clojure.string/includes? string ".")
-    (-> string (clojure.string/split #"\.") first)
-    (->> string drop-last (apply str))))
+  (->> string
+       (tf/parse iso-zoned-date)
+       time/to-default-time-zone))
 
 (defn update-datetime-in [m k]
   (let [v (get m k)]
@@ -65,3 +76,22 @@
     {:hours (mod h 24)
      :minutes (mod m 60)
      :seconds (mod s 60)}))
+
+(defn unparse [date]
+  (tf/unparse (tf/formatters :date-time-no-ms) date))
+
+
+(comment
+  (tf/show-formatters)
+  (->> "2023-01-22T22:09:08.455Z"
+       (tf/parse iso-zoned-date)
+       time/to-default-time-zone
+       time/to-utc-time-zone
+       .toUTCRfc3339String)
+  (tf/parse (tf/formatters :date-time
+                           "2023-01-22T22:09:08.455Z"))
+
+  (unparse (time/to-default-time-zone (time/now)))
+  (time/from-default-time-zone (time/now))
+  (time/default-time-zone))
+

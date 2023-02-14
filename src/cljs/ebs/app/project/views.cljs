@@ -2,6 +2,7 @@
   (:require
    ebs.app.project.handlers
    [ebs.utils.components :as c]
+   [ebs.utils.datetime :as datetime]
    [ebs.utils.views :as views]
    [ebs.utils.forms :as forms]
    [re-frame.core :as rf]
@@ -73,13 +74,13 @@
           "Created at"
           [:input.form-control
            {:type :datetime-local
-            :value (:created_at @project)
+            :value (datetime/to-datetime-local-string (:created_at @project))
             :disabled true}]]
          [c/form-group
           "Updated at"
           [:input.form-control
            {:type :datetime-local
-            :value (:updated_at @project)
+            :value (datetime/to-datetime-local-string (:updated_at @project))
             :disabled true}]]]]
 
        :footer footer}]]))

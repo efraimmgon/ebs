@@ -1,7 +1,9 @@
 (ns ebs.app.timer.handlers
   (:require
-   [cljs-time.core :as time]
+
    [clojure.spec.alpha :as s]
+   [ajax.core :as ajax]
+   [cljs-time.core :as time]
    [reagent.core :as r]
    [re-frame.core :as rf]
    [ebs.utils.datetime :as datetime]
@@ -39,7 +41,7 @@
   [db]
   (-> db
       (set-state :idle)
-      (assoc-in [:timer/settings :task] nil)
+      (assoc-in [:timer/settings :task-id] nil)
       (assoc-in [:timer/settings :start-datetime] nil)
       (assoc-in [:timer/settings :end-datetime] nil)))
 
@@ -54,7 +56,7 @@
   [db]
   (-> db
       (set-state :running)
-      (assoc-in [:timer/settings :task] (:timer/task db))
+      (assoc-in [:timer/settings :task-id] (:timer/select-task db))
       (assoc-in [:timer/settings :start-datetime] (time/now))
       (assoc-in [:timer/settings :end-datetime] (end-datetime))))
 
@@ -93,10 +95,6 @@
   (-> db
       interval-success
       (set-current-session :work)))
-
-; ------------------------------------------------------------------------------
-; 2nd iteration
-; ------------------------------------------------------------------------------
 
 (defn timer-running?
   "Returns true if the timer is running."
@@ -146,17 +144,18 @@
 ; ------------------------------------------------------------------------------
 
 (rf/reg-event-fx
- :timer/done
+ :timer/create-interval!
  events/base-interceptors
- (fn [{:keys [db]} _]
-   (let [js-interval (rf/subscribe [:timer/settings :js-interval])
-         current-session (rf/subscribe [:timer/settings :current-session])
-         beep (rf/subscribe [:timer/beep])]
-     (.play @beep)
-     (js/clearInterval @js-interval)
-     {:db (if (= @current-session :work)
-            (work-interval-success db)
-            (break-interval-success db))})))
+ (fn [_ [{:keys [task-id start-datetime end-datetime]}]]
+   (prn :task-id task-id)
+   {:http-xhrio {:method :post
+                 :uri "/api/intervals"
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :params {:task_id task-id
+                          :start (datetime/unparse start-datetime)
+                          :end (datetime/unparse end-datetime)}
+                 :on-failure [:common/set-error]}}))
 
 (rf/reg-event-fx
  :timer/start
@@ -170,12 +169,41 @@
      {:db (db-update-f db)})))
 
 (rf/reg-event-fx
+ :timer/done
+ events/base-interceptors
+ (fn [{:keys [db]} _]
+   (let [{:keys [js-interval current-session task-id start-datetime end-datetime]}
+         @(rf/subscribe [:timer/settings])
+         beep (rf/subscribe [:timer/beep])
+         work-session? (= current-session :work)]
+     (set! (.-volume @beep) 0.1)
+     (.play @beep)
+     (js/clearInterval js-interval)
+     (cond-> {:db (if work-session?
+                    (work-interval-success db)
+                    (break-interval-success db))}
+       work-session? (assoc :dispatch
+                            [:timer/create-interval!
+                             {:task-id task-id
+                              :start-datetime start-datetime
+                              :end-datetime end-datetime}])))))
+
+(rf/reg-event-fx
  :timer/pause
  events/base-interceptors
  (fn [{:keys [db]} _]
-   (let [js-interval (rf/subscribe [:timer/settings :js-interval])]
-     (js/clearInterval @js-interval)
-     {:db (set-state db :paused)})))
+   (let [{:keys [js-interval current-session task-id start-datetime]}
+         @(rf/subscribe [:timer/settings])
+         work-session? (= current-session :work)]
+     (js/clearInterval js-interval)
+     (cond-> {:db (set-state db :paused)}
+       work-session? (assoc :dispatch
+                            [:timer/create-interval!
+                             {:task-id task-id
+                              :start-datetime start-datetime
+                              :end-datetime (time/now)}])))))
+
+
 
 (rf/reg-event-fx
  :timer/skip-break
@@ -202,7 +230,8 @@
 ; SUBSCRIPTIONS
 ; ------------------------------------------------------------------------------
 
-(rf/reg-sub :timer/task events/query)
+; This is the task value of the select input.
+(rf/reg-sub :timer/select-task events/query)
 
 (rf/reg-sub
  :timer/settings

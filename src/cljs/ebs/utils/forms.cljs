@@ -2,6 +2,8 @@
   (:require
    [cljs.reader :as reader]
    [clojure.string :as string]
+   [ebs.utils.datetime :as datetime]
+   [cljs-time.format :as tf]
    [oops.core :as oops]
    [reagent.core :as r]
    [reagent.dom :refer [dom-node]]
@@ -21,7 +23,8 @@
           :save-fn
           :get-fn))
 
-(defn target-value [event]
+(defn target-value
+  [event]
   (oops/oget event "target" "value"))
 
 (defn get-stored-val [path]
@@ -231,36 +234,31 @@
     label
     [:span.form-check-sign>span.check]]])
 
-(def datetime-format "YYYY-MM-DDTHH:mm:ss.SSS")
-
-; Requires: jquery, bootstrap-datepicker
-(defn datetime-input-group
-  "Takes a path to where to save the input."
-  [{:keys [name] :as params}]
-  (r/create-class
-   {:display-name "datetime component"
-
-    :reagent-render
-    (fn [{:keys [name] :as params}]
-      [input
-       (merge
-        {:type :text
-         :class "form-control"
-         :placeholder "No date"
-         :name name}
-        params)])
-
-    :component-did-mount
-    (fn [this]
-      (let [$dp (js/$ (dom-node this))]
-        (.datetimepicker
-         $dp (clj->js {:format datetime-format}))
-
-        (.on $dp "dp.change"
-             #(rf/dispatch
-               [:assoc-in name
-                (-> % (oops/oget "date") .toISOString)]))))}))
-
+(defn datetime-input
+  "Datetime input component, with common boilerplate.
+   - The date is saved as a goog.date.DateTime obj."
+  [{:keys [name default-value] :as attrs}]
+  (let [name-vec (make-vec name)
+        temp (into [::temp] name-vec)
+        edited-attrs
+        (merge {:on-change (make-handler->set!
+                            temp
+                            target-value)
+                :on-blur (make-handler->set!
+                          name-vec
+                          (fn [event]
+                            (-> temp
+                                get-stored-val
+                                datetime/to-datetime-local)))}
+               (clean-attrs attrs))]
+    (fn [attrs]
+      (maybe-set-default!
+       {:path name-vec :default? default-value :data-type :scalar})
+      [:input (assoc edited-attrs
+                     :type :datetime-local
+                     :value (or (get-stored-val temp)
+                                default-value
+                                ""))])))
 
 ;;; test
 (comment

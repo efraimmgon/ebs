@@ -1,9 +1,9 @@
 (ns ebs.ajax
   (:require
-    [ajax.core :as ajax]
-    [luminus-transit.time :as time]
-    [cognitect.transit :as transit]
-    [re-frame.core :as rf]))
+   [ajax.core :as ajax]
+   [luminus-transit.time :as time]
+   [cognitect.transit :as transit]
+   [re-frame.core :as rf]))
 
 (defn local-uri? [{:keys [uri]}]
   (not (re-find #"^\w+?://" uri)))
@@ -14,13 +14,13 @@
         (update :headers #(merge {"x-csrf-token" js/csrfToken} %)))
     request))
 
-;; injects transit serialization config into request options
 
 (defn as-transit [opts]
   (merge {:format          (ajax/transit-request-format
-                             {:writer (transit/writer :json time/time-serialization-handlers)})
+                            {:writer (transit/writer :json time/time-serialization-handlers)})
           :response-format (ajax/transit-response-format
-                             {:reader (transit/reader :json time/time-deserialization-handlers)})}
+                            {:reader (transit/reader
+                                      :json time/time-deserialization-handlers)})}
          opts))
 
 (defn load-interceptors! []

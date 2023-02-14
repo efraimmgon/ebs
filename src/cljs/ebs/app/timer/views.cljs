@@ -70,13 +70,13 @@
 
 (defn select-task
   [tasks]
-  (r/with-let [selected (rf/subscribe [:timer/task])]
+  (r/with-let [selected (rf/subscribe [:timer/select-task])]
     (when (nil? @selected)
-      (rf/dispatch-sync [:assoc-in [:timer/task] (-> @tasks first :id)]))
+      (rf/dispatch-sync [:assoc-in [:timer/select-task] (-> @tasks first :id)]))
     (when (seq @tasks)
       [:select.form-control.form-control-sm
        {:value (or @selected "")
-        :on-change #(rf/dispatch [:assoc-in [:timer/task]
+        :on-change #(rf/dispatch [:assoc-in [:timer/select-task]
                                   (-> % .-target .-value js/parseInt)])}
        (for [task @tasks]
          ^{:key (:id task)}

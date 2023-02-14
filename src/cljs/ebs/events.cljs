@@ -79,6 +79,7 @@
    :js-interval nil
    :start-datetime nil
    :end-datetime nil
+   :task-id nil
    :interval-count 0
    :state :idle
    :current-session :work

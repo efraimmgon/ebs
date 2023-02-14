@@ -26,7 +26,6 @@
 ;;; ---------------------------------------------------------------------------
 ;;; Handlers
 
-; :story/load-tasks-success
 (rf/reg-event-fx
  :story/load-tasks-success
  events/base-interceptors
