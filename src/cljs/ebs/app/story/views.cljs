@@ -194,9 +194,8 @@
                   [:option {:value id} name])))]]
        [c/form-group
         "Due date"
-        [forms/input
-         {:type :datetime-local
-          :name (conj path :due_date)
+        [forms/datetime-input
+         {:name (conj path :due_date)
           :class "form-control"}]]
        [c/form-group
         "Labels"
