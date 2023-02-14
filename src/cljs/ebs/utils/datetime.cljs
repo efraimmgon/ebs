@@ -23,12 +23,27 @@
        time/to-utc-time-zone
        (tf/unparse iso-zoned-date)))
 
+(defn truncate-ms
+  "Truncates the milliseconds from a string"
+  [string]
+  (when (and string
+             (not (clojure.string/blank? string)))
+    (let [[left ms] (clojure.string/split string #"\.")]
+      (cond (empty? ms)
+            (str (apply str (drop-last left))
+                 ".000Z")
+
+            :else (str left ".000Z")))))
+
 (defn datetime-in
   "Converts a string to a format that can be parsed by the client"
   [string]
   (->> string
+       truncate-ms
        (tf/parse iso-zoned-date)
        time/to-default-time-zone))
+
+#_(datetime-in "2023-02-14T15:53:41.066Z")
 
 (defn update-datetime-in [m k]
   (let [v (get m k)]

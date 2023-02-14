@@ -74,13 +74,17 @@
           "Created at"
           [:input.form-control
            {:type :datetime-local
-            :value (datetime/to-datetime-local-string (:created_at @project))
+            :value (if-let [created-at (:created_at @project)]
+                     (datetime/to-datetime-local-string created-at)
+                     "")
             :disabled true}]]
          [c/form-group
           "Updated at"
           [:input.form-control
            {:type :datetime-local
-            :value (datetime/to-datetime-local-string (:updated_at @project))
+            :value (if-let [updated-at (:updated_at @project)]
+                     (datetime/to-datetime-local-string updated-at)
+                     "")
             :disabled true}]]]]
 
        :footer footer}]]))
