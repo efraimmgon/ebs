@@ -8,6 +8,8 @@
 
 (def datetime-local (tf/formatter "yyyy-MM-dd'T'HH:mm"))
 
+(def user-friendly-fmt (tf/formatter "yyyy-MM-dd HH:mm"))
+
 (defn to-datetime-local-string [datetime]
   (tf/unparse datetime-local datetime))
 
@@ -58,9 +60,9 @@
           :else (update m k datetime-out))))
 
 (defn datetime-ui
-  "Converts a string to a user friendly format"
-  [string]
-  (.toUTCString (js/Date. (str string "Z"))))
+  "Converts a goog.date.DateTime obj to a user friendly format"
+  [datetime-obj]
+  (tf/unparse user-friendly-fmt datetime-obj))
 
 (defn min->ms
   "Convert minutes to milliseconds"
@@ -102,7 +104,7 @@
        (tf/parse iso-zoned-date)
        time/to-default-time-zone
        time/to-utc-time-zone
-       .toUTCRfc3339String)
+       .toUTCIsoString)
   (tf/parse (tf/formatters :date-time
                            "2023-01-22T22:09:08.455Z"))
 

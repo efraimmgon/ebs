@@ -100,6 +100,7 @@
                 {:on-click cancel-handler}
                 "Cancel"]]}]))
 
+
 (defn stories-ui
   "Component to display the stories."
   []
@@ -139,6 +140,7 @@
              (for [story @stories]
                ^{:key (:id story)}
                [story-list-item story])])]))]]))
+
 
 (defn story-ui
   "Component to display the story form."
