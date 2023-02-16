@@ -153,8 +153,9 @@
                  :format (ajax/json-request-format)
                  :response-format (ajax/json-response-format {:keywords? true})
                  :params {:task_id task-id
-                          :start (datetime/unparse start-datetime)
-                          :end (datetime/unparse end-datetime)}
+                          :start (datetime/unparse-utc-datetime start-datetime)
+                          :end (datetime/unparse-utc-datetime end-datetime)}
+                 :on-success [:common/log]
                  :on-failure [:common/set-error]}}))
 
 (rf/reg-event-fx

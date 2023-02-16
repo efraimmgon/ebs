@@ -67,6 +67,13 @@
  (fn [db [_ error]]
    (assoc db :common/error error)))
 
+(rf/reg-event-fx
+ :common/log
+ base-interceptors
+ (fn [_ [msg]]
+   (prn msg)
+   nil))
+
 
 ;;; ---------------------------------------------------------------------------
 ;;; Initial state

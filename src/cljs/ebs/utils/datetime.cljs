@@ -94,8 +94,8 @@
      :minutes (mod m 60)
      :seconds (mod s 60)}))
 
-(defn unparse [date]
-  (tf/unparse (tf/formatters :date-time-no-ms) date))
+(defn unparse-utc-datetime [date]
+  (tf/unparse iso-zoned-date date))
 
 
 (comment
@@ -108,7 +108,7 @@
   (tf/parse (tf/formatters :date-time
                            "2023-01-22T22:09:08.455Z"))
 
-  (unparse (time/to-default-time-zone (time/now)))
+  (unparse-utc-datetime (time/to-default-time-zone (time/now)))
   (time/from-default-time-zone (time/now))
   (time/default-time-zone))
 

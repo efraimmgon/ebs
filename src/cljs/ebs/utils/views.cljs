@@ -1,10 +1,10 @@
 (ns ebs.utils.views
   (:require
+   [ebs.app.timer.views :as timer-views]
    [ebs.utils.components :as c]
-   [ebs.utils.events :refer [<sub dispatch-n]]
+   [ebs.utils.events :refer [<sub]]
    [re-frame.core :as rf]
-   [reagent.core :as r]
-   [reitit.frontend.easy :as rfe]))
+   [reagent.core :as r]))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Modal
@@ -40,13 +40,15 @@
 
 (defn navbar []
   (r/with-let [current-project (rf/subscribe [:project/active])]
-    [:nav.navbar.navbar-dark.sticky-top.bg-dark.flex-md-nowrap.p-0
+    [:nav
+     {:class "navbar navbar-expand-lg navbar-light bg-light sticky-top"}
      [:a.navbar-brand.col-sm-3.col-md-2.mr-0 {:href "#"} "EBS"]
    ; TODO: search
      #_[:input.form-control.form-control-dark.w-100
         {:type "text", :placeholder "Search", :aria-label "Search"}]
    ; TODO: create project button.
-     [:ul.navbar-nav.px-3
+     [:ul.navbar-nav.px-3.ml-auto
+      [timer-views/navbar-timer-ui]
       (when-not @current-project
         [create-project-button])]]))
 

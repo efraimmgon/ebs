@@ -1,6 +1,8 @@
 (ns ebs.app.timer.views
   (:require
    clojure.string
+   [ebs.utils.components :as c]
+   [oops.core :as oops]
    [reagent.core :as r]
    [re-frame.core :as rf]
    [ebs.app.timer.handlers :as handlers]))
@@ -31,30 +33,30 @@
   [:button.btn.btn-info.btn-sm
    {:on-click #(rf/dispatch [:timer/start])}
    (if (= :paused @state)
-     "Resume"
-     "Start")])
+     [:i.material-icons "play_circle"]
+     [:i.material-icons "play_arrow"])])
 
 (defn pause-timer-button
   []
   [:button.btn.btn-info.btn-sm
    {:on-click #(rf/dispatch [:timer/pause])}
-   "Pause"])
+   [:i.material-icons "pause"]])
 
 (defn skip-break-button
   []
   [:button.btn.btn-info.btn-sm
    {:on-click #(rf/dispatch [:timer/skip-break])}
-   "Skip break"])
+   [:i.material-icons "skip_next"]])
 
 (defn cancel-timer-button
   []
   [:button.btn.btn-warning.btn-sm
    {:on-click #(rf/dispatch [:timer/cancel])}
-   "Cancel"])
+   [:i.material-icons "cancel"]])
 
 (defn timer-control-buttons
   [{:keys [tasks state current-session]}]
-  [:div.col-sm-4
+  [:div
    (when (and (display? @tasks) (= :idle @state))
      [start-timer-button state]) " "
    (when (and (= :idle @state)
@@ -88,28 +90,49 @@
   (let [format-time (fn [time] (if (< time 10) (str "0" time) time))]
     (str (format-time minutes) ":" (format-time seconds))))
 
-(defn timer-ui
-  "Timer UI"
+(defn timer-modal
   []
   (r/with-let [tasks (rf/subscribe [:tasks/pending])
                state (rf/subscribe [:timer/settings :state])
-               current-session (rf/subscribe [:timer/settings :current-session])]
-    [:div
-     [:h5
-      [:span.material-icons "timer"]
-      " Pomodoro Timer "
-      [:span.badge.badge-danger.font-weight-bold
-       [time-remaining-ui (handlers/time-remaining-for-ui)]]]
+               current-session (rf/subscribe [:timer/settings :current-session])
+               cancel-handler #(rf/dispatch [:remove-modal])]
 
-     [:div.form-group.row
+    [c/modal
+     {:header [:h5 "Pomodoro Timer"]
 
-      [:label.col-sm-1.col-form-label "Task"]
-      [:div.col-sm-7
-       (if (display? @tasks)
-         [select-task tasks]
-         [:div.col-form-label.text-muted "Add a task to use the timer."])]
+      :attrs {:on-key-down
+              #(do
+                 (prn "key" (oops/oget % "key"))
+                 (case (oops/oget % "key")
+                   "Escape" (cancel-handler)
+                   nil))}
 
-      [timer-control-buttons
-       {:tasks tasks
-        :state state
-        :current-session current-session}]]]))
+      :body [:div
+             [:div.form-group.row
+              [:label.col-sm-1.col-form-label "Task"]
+              [:div.col-sm-7
+               (if (display? @tasks)
+                 [select-task tasks]
+                 [:div.col-form-label.text-muted "Add a task to use the timer."])]
+
+              [timer-control-buttons
+               {:tasks tasks
+                :state state
+                :current-session current-session}]]]
+
+      :footer [:div
+               [:button.btn.btn-secondary
+                {:type "button"
+                 :on-click cancel-handler}
+                "Close"]]}]))
+
+(defn navbar-timer-ui
+  []
+  [:li.nav-item
+   [:button.nav-link.btn.btn-outline-info
+    {:type "button"
+     :on-click #(rf/dispatch [:modal timer-modal])}
+    [:span.material-icons "timer"]
+    " "
+    [:span.badge.badge-danger.font-weight-bold
+     [time-remaining-ui (handlers/time-remaining-for-ui)]]]])

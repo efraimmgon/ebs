@@ -143,6 +143,7 @@
 ; Modal
 ; ------------------------------------------------------------------------------
 
+; Note: on-key-down won't work unless the modal is focused.
 (defn modal [{:keys [attrs header body footer]}]
   [:div
    attrs

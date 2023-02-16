@@ -48,7 +48,8 @@
 (defn create-interval!
   "Create a new interval."
   [interval]
-  (fsdb/create! :interval interval))
+  (response/ok
+   (fsdb/create! :interval interval)))
 
 (defn delete-interval!
   "Delete an interval by id."

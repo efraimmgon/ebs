@@ -70,8 +70,7 @@
   (r/with-let [path [:story/new]
                story (rf/subscribe path)
                create-handler #(rf/dispatch [:story/create! @story])
-               cancel-handler #(do (prn "cancel")  (flush)
-                                   (rf/dispatch [:remove-modal])
+               cancel-handler #(do (rf/dispatch [:remove-modal])
                                    (rf/dispatch [:assoc-in path nil]))]
     [c/modal
      {:header "New Story"
@@ -168,7 +167,6 @@
           :placeholder "Description"
           :class "form-control"
           :rows 5}]]
-       [timer/timer-ui]
        [task/tasks-ui]]
 
       ;; Right column
