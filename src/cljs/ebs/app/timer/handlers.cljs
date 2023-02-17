@@ -41,7 +41,7 @@
   [db]
   (-> db
       (set-state :idle)
-      (assoc-in [:timer/settings :task-id] nil)
+      (assoc-in [:timer/settings :task] nil)
       (assoc-in [:timer/settings :start-datetime] nil)
       (assoc-in [:timer/settings :end-datetime] nil)))
 
@@ -54,11 +54,13 @@
 (defn start-interval
   "Updates on db when starting an interval."
   [db]
-  (-> db
-      (set-state :running)
-      (assoc-in [:timer/settings :task-id] (:timer/select-task db))
-      (assoc-in [:timer/settings :start-datetime] (time/now))
-      (assoc-in [:timer/settings :end-datetime] (end-datetime))))
+  (let [tasks-tree @(rf/subscribe [:tasks/tree])
+        selected-task @(rf/subscribe [:timer/select-task-id])]
+    (-> db
+        (set-state :running)
+        (assoc-in [:timer/settings :task] (get tasks-tree selected-task))
+        (assoc-in [:timer/settings :start-datetime] (time/now))
+        (assoc-in [:timer/settings :end-datetime] (end-datetime)))))
 
 (defn start-work-interval
   "Updates on db when starting a work interval."
@@ -147,7 +149,6 @@
  :timer/create-interval!
  events/base-interceptors
  (fn [_ [{:keys [task-id start-datetime end-datetime]}]]
-   (prn :task-id task-id)
    {:http-xhrio {:method :post
                  :uri "/api/intervals"
                  :format (ajax/json-request-format)
@@ -173,7 +174,7 @@
  :timer/done
  events/base-interceptors
  (fn [{:keys [db]} _]
-   (let [{:keys [js-interval current-session task-id start-datetime end-datetime]}
+   (let [{:keys [js-interval current-session task start-datetime end-datetime]}
          @(rf/subscribe [:timer/settings])
          beep (rf/subscribe [:timer/beep])
          work-session? (= current-session :work)]
@@ -185,7 +186,7 @@
                     (break-interval-success db))}
        work-session? (assoc :dispatch
                             [:timer/create-interval!
-                             {:task-id task-id
+                             {:task-id (:id task)
                               :start-datetime start-datetime
                               :end-datetime end-datetime}])))))
 
@@ -193,14 +194,14 @@
  :timer/pause
  events/base-interceptors
  (fn [{:keys [db]} _]
-   (let [{:keys [js-interval current-session task-id start-datetime]}
+   (let [{:keys [js-interval current-session task start-datetime]}
          @(rf/subscribe [:timer/settings])
          work-session? (= current-session :work)]
      (js/clearInterval js-interval)
      (cond-> {:db (set-state db :paused)}
        work-session? (assoc :dispatch
                             [:timer/create-interval!
-                             {:task-id task-id
+                             {:task-id (:id task)
                               :start-datetime start-datetime
                               :end-datetime (time/now)}])))))
 
@@ -232,7 +233,7 @@
 ; ------------------------------------------------------------------------------
 
 ; This is the task value of the select input.
-(rf/reg-sub :timer/select-task events/query)
+(rf/reg-sub :timer/select-task-id events/query)
 
 (rf/reg-sub
  :timer/settings

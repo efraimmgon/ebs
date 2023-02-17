@@ -72,15 +72,34 @@
 
 (defn select-task
   [tasks]
-  (r/with-let [selected (rf/subscribe [:timer/select-task])]
-    (when (nil? @selected)
-      (rf/dispatch-sync [:assoc-in [:timer/select-task] (-> @tasks first :id)]))
+  (r/with-let [current-story (rf/subscribe [:story/active])
+               timer-state (rf/subscribe [:timer/settings :state])
+               selected (rf/subscribe [:timer/select-task-id])
+               timer-task (rf/subscribe [:timer/settings :task])
+
+               set-selected-task-if-nil!
+               (fn []
+                 (when (nil? @selected)
+                   (rf/dispatch [:assoc-in [:timer/select-task-id]
+                                 (-> @tasks first :id)])))
+
+               tasks-list
+               (fn []
+                 (cond
+                   (= :idle @timer-state) @tasks
+
+                   :else
+                   (if (= (:story_id @timer-task) (:id @current-story))
+                     @tasks
+                     (cons @timer-task @tasks))))]
+
+    (set-selected-task-if-nil!)
     (when (seq @tasks)
       [:select.form-control.form-control-sm
        {:value (or @selected "")
-        :on-change #(rf/dispatch [:assoc-in [:timer/select-task]
+        :on-change #(rf/dispatch [:assoc-in [:timer/select-task-id]
                                   (-> % .-target .-value js/parseInt)])}
-       (for [task @tasks]
+       (for [task (tasks-list)]
          ^{:key (:id task)}
          [:option {:value (:id task)} (:title task)])])))
 
@@ -108,6 +127,7 @@
                    nil))}
 
       :body [:div
+             ; todo add a circular progress ui
              [:div.form-group.row
               [:label.col-sm-1.col-form-label "Task"]
               [:div.col-sm-7
