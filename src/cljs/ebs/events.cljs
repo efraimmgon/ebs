@@ -30,8 +30,6 @@
    (js/window.scrollTo #js {"top" 0 "left" 0 "behavior" "smooth"})
    (let [modal-stack (:modal db)]
      (if (seq modal-stack)
-       (prn "seq") (prn "not-seq"))
-     (if (seq modal-stack)
        (update db :modal conj comp)
        (assoc db :modal [comp])))))
 
@@ -86,7 +84,6 @@
    :js-interval nil
    :start-datetime nil
    :end-datetime nil
-   :task-id nil
    :interval-count 0
    :state :idle
    :current-session :work

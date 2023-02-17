@@ -41,7 +41,6 @@
   [db]
   (-> db
       (set-state :idle)
-      (assoc-in [:timer/settings :task] nil)
       (assoc-in [:timer/settings :start-datetime] nil)
       (assoc-in [:timer/settings :end-datetime] nil)))
 
@@ -54,13 +53,10 @@
 (defn start-interval
   "Updates on db when starting an interval."
   [db]
-  (let [tasks-tree @(rf/subscribe [:tasks/tree])
-        selected-task @(rf/subscribe [:timer/select-task-id])]
-    (-> db
-        (set-state :running)
-        (assoc-in [:timer/settings :task] (get tasks-tree selected-task))
-        (assoc-in [:timer/settings :start-datetime] (time/now))
-        (assoc-in [:timer/settings :end-datetime] (end-datetime)))))
+  (-> db
+      (set-state :running)
+      (assoc-in [:timer/settings :start-datetime] (time/now))
+      (assoc-in [:timer/settings :end-datetime] (end-datetime))))
 
 (defn start-work-interval
   "Updates on db when starting a work interval."
@@ -144,6 +140,12 @@
 ; ------------------------------------------------------------------------------
 ; HANDLERS
 ; ------------------------------------------------------------------------------
+
+(rf/reg-event-fx
+ :timer/set-task
+ events/base-interceptors
+ (fn [{:keys [db]} [task]]
+   {:db (assoc-in db [:timer/settings :task] task)}))
 
 (rf/reg-event-fx
  :timer/create-interval!
@@ -266,3 +268,29 @@
  :<- [:timer/settings]
  (fn [settings]
    (:session-done-audio settings)))
+
+(rf/reg-sub
+ :timer.ui.select/selected-task
+ :<- [:timer/settings]
+ (fn [settings]
+   (:task settings)))
+
+(rf/reg-sub
+ :timer.ui.select/tasks
+ :<- [:timer/settings]
+ :<- [:story/active]
+ :<- [:tasks/pending]
+ (fn [[settings active-story pending-tasks]]
+   (let [timer-state (:state settings)
+         timer-task (:task settings)]
+     (if (or (= :idle timer-state)
+             (= (:id active-story) (:story_id timer-task)))
+       pending-tasks
+       (if (seq timer-task)
+         (cons timer-task pending-tasks)
+         pending-tasks)))))
+
+(comment
+  @(rf/subscribe [:tasks/pending])
+  @(rf/subscribe [:timer/settings])
+  @(rf/subscribe [:timer.ui.select/tasks]))

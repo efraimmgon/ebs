@@ -72,34 +72,28 @@
 
 (defn select-task
   [tasks]
-  (r/with-let [current-story (rf/subscribe [:story/active])
-               timer-state (rf/subscribe [:timer/settings :state])
-               selected (rf/subscribe [:timer/select-task-id])
-               timer-task (rf/subscribe [:timer/settings :task])
+  (r/with-let [timer-task (rf/subscribe [:timer.ui.select/selected-task])
 
                set-selected-task-if-nil!
-               (fn []
-                 (when (nil? @selected)
-                   (rf/dispatch [:assoc-in [:timer/select-task-id]
-                                 (-> @tasks first :id)])))
+               (fn [timer-task tasks]
+                 (when (and (seq @tasks)
+                            (nil? @timer-task))
+                   (rf/dispatch-sync [:timer/set-task (first @tasks)])))
 
-               tasks-list
-               (fn []
-                 (cond
-                   (= :idle @timer-state) @tasks
+               tasks-list (rf/subscribe [:timer.ui.select/tasks])]
 
-                   :else
-                   (if (= (:story_id @timer-task) (:id @current-story))
-                     @tasks
-                     (cons @timer-task @tasks))))]
-
-    (set-selected-task-if-nil!)
+    (set-selected-task-if-nil! timer-task tasks)
     (when (seq @tasks)
       [:select.form-control.form-control-sm
-       {:value (or @selected "")
-        :on-change #(rf/dispatch [:assoc-in [:timer/select-task-id]
-                                  (-> % .-target .-value js/parseInt)])}
-       (for [task (tasks-list)]
+       {:value (or (:id @timer-task) "")
+        :on-change #(rf/dispatch-sync
+                     [:timer/set-task
+                      (let [task-id (-> % .-target .-value js/parseInt)]
+                        (some (fn [task]
+                                (when (= (:id task) task-id)
+                                  task))
+                              @tasks))])}
+       (for [task @tasks-list]
          ^{:key (:id task)}
          [:option {:value (:id task)} (:title task)])])))
 
