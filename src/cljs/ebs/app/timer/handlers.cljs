@@ -13,6 +13,13 @@
 
 (s/def :timer/state #{:idle :paused :running})
 
+(defn beep!
+  "Plays the beep sound."
+  []
+  (let [beep (rf/subscribe [:timer/beep])]
+    (set! (.-volume @beep) 0.1)
+    (.play @beep)))
+
 (defn time-remaining-for-ui
   []
   (-> (:time-remaining @timer)
@@ -57,42 +64,6 @@
       (set-state :running)
       (assoc-in [:timer/settings :start-datetime] (time/now))
       (assoc-in [:timer/settings :end-datetime] (end-datetime))))
-
-(defn start-work-interval
-  "Updates on db when starting a work interval."
-  [db]
-  (-> db
-      start-interval
-      (set-current-session :work)))
-
-(defn start-break-interval
-  "Updates on db when starting a break interval."
-  [db]
-  (let [break (short-or-long-break (:timer/settings db))]
-    (-> db
-        start-interval
-        (set-current-session break))))
-
-(defn work-interval-success
-  "Updates on db when a work interval is successful."
-  [db]
-  (let [db (update-in db [:timer/settings :interval-count] inc)
-        break (short-or-long-break (:timer/settings db))]
-    (set-time-remaining!
-     (if (= break :short-break)
-       @(rf/subscribe [:timer/short-break-duration])
-       @(rf/subscribe [:timer/long-break-duration])))
-    (-> db
-        interval-success
-        (set-current-session break))))
-
-(defn break-interval-success
-  "Updates on db when a break interval is successful."
-  [db]
-  (set-time-remaining! @(rf/subscribe [:timer/work-duration]))
-  (-> db
-      interval-success
-      (set-current-session :work)))
 
 (defn timer-running?
   "Returns true if the timer is running."
@@ -148,6 +119,46 @@
    {:db (assoc-in db [:timer/settings :task] task)}))
 
 (rf/reg-event-fx
+ :timer/start-work-interval
+ events/base-interceptors
+ (fn [{:keys [db]} _]
+   {:db (-> db
+            start-interval
+            (set-current-session :work))}))
+
+(rf/reg-event-fx
+ :timer/start-break-interval
+ events/base-interceptors
+ (fn [{:keys [db]} _]
+   (let [break (short-or-long-break (:timer/settings db))]
+     {:db (-> db
+              start-interval
+              (set-current-session break))})))
+
+(rf/reg-event-fx
+ :timer/work-interval-success
+ events/base-interceptors
+ (fn [{:keys [db]} _]
+   (let [db (update-in db [:timer/settings :interval-count] inc)
+         break (short-or-long-break (:timer/settings db))]
+     (set-time-remaining!
+      (if (= break :short-break)
+        @(rf/subscribe [:timer/short-break-duration])
+        @(rf/subscribe [:timer/long-break-duration])))
+     {:db (-> db
+              interval-success
+              (set-current-session break))})))
+
+(rf/reg-event-fx
+ :timer/break-interval-success
+ events/base-interceptors
+ (fn [{:keys [db]} _]
+   (set-time-remaining! @(rf/subscribe [:timer/work-duration]))
+   {:db (-> db
+            interval-success
+            (set-current-session :work))}))
+
+(rf/reg-event-fx
  :timer/create-interval!
  events/base-interceptors
  (fn [_ [{:keys [task-id start-datetime end-datetime]}]]
@@ -164,13 +175,12 @@
 (rf/reg-event-fx
  :timer/start
  events/base-interceptors
- (fn [{:keys [db]} _]
-   (let [current-session (rf/subscribe [:timer/settings :current-session])
-         db-update-f (if (= @current-session :work)
-                       start-work-interval
-                       start-break-interval)]
+ (fn [_ _]
+   (let [current-session (rf/subscribe [:timer/settings :current-session])]
      (timer-updater)
-     {:db (db-update-f db)})))
+     {:dispatch (if (= @current-session :work)
+                  [:timer/start-work-interval]
+                  [:timer/start-break-interval])})))
 
 (rf/reg-event-fx
  :timer/done
@@ -178,19 +188,18 @@
  (fn [{:keys [db]} _]
    (let [{:keys [js-interval current-session task start-datetime end-datetime]}
          @(rf/subscribe [:timer/settings])
-         beep (rf/subscribe [:timer/beep])
+
          work-session? (= current-session :work)]
-     (set! (.-volume @beep) 0.1)
-     (.play @beep)
+
+     (beep!)
      (js/clearInterval js-interval)
-     (cond-> {:db (if work-session?
-                    (work-interval-success db)
-                    (break-interval-success db))}
-       work-session? (assoc :dispatch
-                            [:timer/create-interval!
-                             {:task-id (:id task)
-                              :start-datetime start-datetime
-                              :end-datetime end-datetime}])))))
+     {:dispatch-n (if work-session?
+                    [[:timer/work-interval-success]
+                     [:timer/create-interval!
+                      {:task-id (:id task)
+                       :start-datetime start-datetime
+                       :end-datetime end-datetime}]]
+                    [[:timer/break-interval-success]])})))
 
 (rf/reg-event-fx
  :timer/pause
