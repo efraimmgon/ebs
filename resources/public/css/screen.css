@@ -27,3 +27,7 @@
   vertical-align: middle;
   height: inherit;
 }
+
+.link-style {
+  cursor: pointer;
+}

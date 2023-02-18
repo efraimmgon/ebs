@@ -4,6 +4,7 @@
    [reagent.core :as r]
    [re-frame.core :as rf]
    [oops.core :as oops]
+   [markdown.core :as md]
    [ebs.app.timer.views :as timer]
    [ebs.app.task.views :as task]
    [ebs.utils.components :as c]
@@ -154,19 +155,19 @@
       ;; Left column
       [:div.col-md-9
        [c/form-group
-        "Title"
-        [forms/input
-         {:type :text
-          :name (conj path :title)
-          :placehodler "Title"
-          :class "form-control"}]]
-       [c/form-group
         "Description"
-        [forms/textarea
-         {:name (conj path :description)
-          :placeholder "Description"
-          :class "form-control"
-          :rows 5}]]
+        [c/toggle-comp
+         (let [description (:description @story)]
+           [:div
+            (if (clojure.string/blank? description)
+              "Add a more detailed description..."
+              {:dangerouslySetInnerHTML
+               {:__html (md/md->html description)}})])
+         [forms/textarea
+          {:name (conj path :description)
+           :placeholder "Description"
+           :class "form-control"
+           :rows 5}]]]
        [task/tasks-ui]]
 
       ;; Right column
@@ -226,28 +227,6 @@
 
      :footer footer}]])
 
-(defn new-story-ui
-  "Component to create a new story."
-  []
-  (r/with-let [project (rf/subscribe [:project/active])
-               path [:story/new]
-               new-story (rf/subscribe path)]
-    [story-ui
-     {:title "New Story"
-
-      :path path
-
-      :story new-story
-
-      :footer
-      [:div
-       [:button.btn.btn-primary
-        {:on-click #(rf/dispatch [:story/create! @new-story])}
-        "Create"]
-       [:a.btn.btn-secondary.ml-2
-        {:href (rfe/href :project/view-stories {:project-id (:id @project)})}
-        "Cancel"]]}]))
-
 (defn edit-story-ui
   "Component to edit a story."
   []
@@ -255,11 +234,20 @@
                story (rf/subscribe path)]
     [story-ui
      {:title
-      [:div "Edit Story"
-       [:span.float-right
-        [:button.btn.btn-danger
-         {:on-click #(rf/dispatch [:story/delete! (:project_id @story) (:id @story)])}
-         "Delete"]]]
+      [:div.row
+       [:div.col-md-11
+        [c/toggle-comp
+         (:title @story)
+         [forms/input
+          {:type :text
+           :name (conj path :title)
+           :placehodler "Title"
+           :class "form-control"}]]]
+       [:div.col-md-1
+        [:span.float-right
+         [:button.btn.btn-danger
+          {:on-click #(rf/dispatch [:story/delete! (:project_id @story) (:id @story)])}
+          "Delete"]]]]
 
       :path path
 

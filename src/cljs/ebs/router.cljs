@@ -45,13 +45,6 @@
                                   [:stories/load
                                    (js/parseInt
                                     (get-in path [:path :project-id]))]))}]}]
-       ["/new"
-        {:name :story/new
-         :view #'story/new-story-ui
-         :controllers [{:parameters {:path [:project-id]}
-                        :start (fn [_]
-                                 (rf/dispatch
-                                  [:assoc-in [:tasks/tree] nil]))}]}]
        ["/{story-id}"
         {:parameters {:path {:story-id int?}}
          :controllers [{:parameters {:path [:project-id :story-id]}

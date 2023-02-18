@@ -146,7 +146,8 @@
 ; Note: on-key-down won't work unless the modal is focused.
 (defn modal [{:keys [attrs header body footer]}]
   [:div
-   attrs
+   (assoc attrs
+          :tab-index 0)
    [:div.modal-dialog
     [:div.modal-content
      (when header
@@ -203,6 +204,21 @@
          [:a.page-link
           {:on-click #(swap! current-page forward page-count)}
           ">>"]]]))]))
+
+; --------------------------------------------------------------------
+; TOGGLE-COMP ON FOCUS
+; --------------------------------------------------------------------
+
+(defn toggle-comp
+  [c1 c2]
+  (r/with-let [focus? (r/atom false)]
+    [:span.link-style
+     {:tab-index 0
+      :on-focus #(reset! focus? true)
+      :on-blur #(reset! focus? false)}
+     (if @focus?
+       c2
+       c1)]))
 
 
 (comment

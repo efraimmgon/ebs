@@ -1,6 +1,5 @@
 (ns ebs.app.timer.handlers
   (:require
-
    [clojure.spec.alpha :as s]
    [ajax.core :as ajax]
    [cljs-time.core :as time]
