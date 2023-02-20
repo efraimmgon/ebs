@@ -55,20 +55,31 @@
        :body
        [:div.row
         [:div.col-md-9
-         [c/form-group
-          "Title"
-          [forms/input
-           {:type "text"
-            :name (conj path :title)
-            :placeholder "Title"
-            :class "form-control"}]]
-         [c/form-group
-          "Description"
-          [forms/textarea
-           {:name (conj path :description)
-            :placeholder "Description"
-            :class "form-control"
-            :rows 6}]]]
+         (when-not (:id @project)
+           [c/form-group
+            "Title"
+            [forms/input
+             {:type "text"
+              :name (conj path :title)
+              :placeholder "Title"
+              :class "form-control"}]])
+         (if (:id @project)
+           [c/toggle-comp
+            (:description @project)
+            [c/form-group
+             "Description"
+             [forms/textarea
+              {:name (conj path :description)
+               :placeholder "Description"
+               :class "form-control"
+               :rows 6}]]]
+           [c/form-group
+            "Description"
+            [forms/textarea
+             {:name (conj path :description)
+              :placeholder "Description"
+              :class "form-control"
+              :rows 6}]])]
         [:div.col-md-3
          [c/form-group
           "Created at"
@@ -117,12 +128,20 @@
      {:path path
 
       :title
-      ; add a delete button next to the title:
-      [:span
-       "Edit Project "
-       [:button.btn.btn-danger.float-right.btn-sm
-        {:on-click #(rf/dispatch [:project/delete! (:id @project)])}
-        "Delete"]]
+      [:div.row
+       [:div.col-md-11
+        [c/toggle-comp
+         (:title @project)
+         [forms/input
+          {:type "text"
+           :name (conj path :title)
+           :placeholder "Title"
+           :class "form-control"}]]]
+       [:div.col-md-1
+        [:button.btn.btn-danger.float-right.btn-sm
+         {:on-click #(rf/dispatch [:project/delete! (:id @project)])}
+         "Delete"]]]
+
 
       :footer
       [:div
