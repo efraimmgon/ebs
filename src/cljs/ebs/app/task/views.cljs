@@ -11,13 +11,9 @@
   (contains? @(rf/subscribe [:task/temporary]) id))
 
 (defn create-task-ui
-  [path {:keys [id status current_estimate elapsed_time] :as task}]
+  [path {:keys [id status] :as task}]
 
   [:div
-   (when (and current_estimate elapsed_time)
-     [:div.float-right
-      [:small.text-muted
-       (str elapsed_time " / " current_estimate " minutes")]])
    [:div.form-row
     [:div.form-group.col-md-1
      [:input.form-control.form-check-input
@@ -42,7 +38,7 @@
      [:input.form-control
       {:type "number"
        :disabled true
-       :value (or elapsed_time "")}]]
+       :value ""}]]
     [:div.form-group.col-md-1
      ""]]
 
@@ -56,31 +52,37 @@
       {:on-click #(rf/dispatch [:task/delete! id])}
       "Cancel"]]]])
 
+(defn handle-task-being-tracked?
+  [task timer-settings]
+  (and (= (:status task) "complete")
+       (= (:id task) (get-in timer-settings [:task :id]))
+       (= (:state timer-settings) :running)))
+
 (defn update-task-ui
-  [path {:keys [id status current_estimate elapsed_time]}]
-  (r/with-let [task (rf/subscribe [:query path])]
+  [path]
+  (r/with-let [task (rf/subscribe [:query path])
+               tsettings (rf/subscribe [:timer/settings])]
     [:div
-     (when (and current_estimate elapsed_time)
-       [:div.float-right
-        [:small.text-muted
-         (str elapsed_time "/" current_estimate " minutes")]])
      [:div.form-row
       [:div.form-group.col-md-1
        [:input.form-control.form-check-input
         {:type "checkbox"
-         :checked (= status "complete")
+         :checked (= (:status @task) "complete")
          :on-change #(do (rf/dispatch-sync
                           [:assoc-in (conj path :status)
-                           (if (= status "complete")
+                           (if (= (:status @task) "complete")
                              "pending"
                              "complete")])
+                         (when (handle-task-being-tracked? @task @tsettings)
+                           (rf/dispatch
+                            [:timer/task-completed-being-tracked]))
                          (rf/dispatch [:task/update! @task]))}]]
       [:div.form-group.col-md-8
        [forms/textarea
         {:name (conj path :title)
          :rows 1
          :class "form-control"
-         :auto-focus (temporary-id? id)
+         :auto-focus (temporary-id? (:id @task))
          :on-blur #(rf/dispatch [:task/update! @task])}]]
       [:div.form-group.col-md-1
        [forms/input
@@ -92,10 +94,10 @@
        [:input.form-control
         {:type "number"
          :disabled true
-         :value (or elapsed_time "")}]]
+         :value ""}]]
       [:div.form-group.col-md-1
        [:button.btn.btn-light
-        {:on-click #(rf/dispatch [:task/delete! id])}
+        {:on-click #(rf/dispatch [:task/delete! (:id @task)])}
         [:i.material-icons.md-18 "delete"]]]]]))
 
 (defn task-item
@@ -104,7 +106,7 @@
 
     (if (temporary-id? id)
       [create-task-ui path task]
-      [update-task-ui path task])))
+      [update-task-ui path])))
 
 (defn tasks-ui
   "Component to display a list of tasks."

@@ -238,6 +238,15 @@
               (set-state :idle)
               (set-current-session :work))})))
 
+(rf/reg-event-fx
+ :timer/task-completed-being-tracked
+ events/base-interceptors
+ (fn [_ _]
+   (let [next-task (first @(rf/subscribe [:timer.ui.select/tasks]))]
+     {:dispatch-n [[:timer/pause]
+                   [:timer/set-task next-task]
+                   [:timer/start]]})))
+
 ; ------------------------------------------------------------------------------
 ; SUBSCRIPTIONS
 ; ------------------------------------------------------------------------------
