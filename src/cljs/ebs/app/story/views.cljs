@@ -145,87 +145,93 @@
 (defn story-ui
   "Component to display the story form."
   [{:keys [title footer path story]}]
-  [views/base-ui
-   [c/card
-    {:title title
+  (r/with-let [view-mode? (r/atom true)]
+    [views/base-ui
+     [c/card
+      {:title title
 
-     :body
-     [:div.row
+       :body
+       [:div.row
 
       ;; Left column
-      [:div.col-md-9
-       [c/form-group
-        "Description"
-        [c/toggle-comp
-         (let [description (:description @story)]
-           [:div
-            (if (clojure.string/blank? description)
-              "Add a more detailed description..."
-              {:dangerouslySetInnerHTML
-               {:__html (md/md->html description)}})])
-         [forms/textarea
-          {:name (conj path :description)
-           :placeholder "Description"
-           :class "form-control"
-           :rows 5}]]]
-       [task/tasks-ui]]
+        [:div.col-md-9
+         [c/form-group
+          [:span "Description "
+           [:button.btn.btn-primary.btn-sm
+            {:on-click #(swap! view-mode? not)}
+            (if @view-mode? "Edit" "View")]]
+          (if @view-mode?
+            [:div
+             (if (clojure.string/blank? (:description @story))
+               "Add a more detailed description..."
+               {:dangerouslySetInnerHTML
+                {:__html (md/md->html (:description @story))}})]
+            [forms/textarea
+             {:name (conj path :description)
+              :placeholder "Description"
+              :class "form-control"
+              :rows 10}])]
+
+         [:hr]
+
+         [task/tasks-ui]]
 
       ;; Right column
-      [:div.col-md-3
-       [c/form-group
-        "Status"
-        [forms/select
-         {:name (conj path :status)
-          :default-value "pending"
-          :class "form-control"}
-         (doall
-          (for [status @(rf/subscribe [:statuses/all])]
-            ^{:key status}
-            [:option {:value status} (clojure.string/capitalize status)]))]]
-       [c/form-group
-        "Priority"
-        [forms/select
-         {:name (conj path :priority)
-          :class "form-control"
-          :save-fn #(js/parseInt %)}
-         (doall
-          (into [[:option {:value ""} ""]]
-                (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
-                  ^{:key id}
-                  [:option {:value id} name])))]]
-       [c/form-group
-        "Due date"
-        [forms/datetime-input
-         {:name (conj path :due_date)
-          :class "form-control"}]]
-       [c/form-group
-        "Labels"
-        (doall
-         (for [label @(rf/subscribe [:labels/all])]
-           ^{:key label}
-           [forms/checkbox-comp
-            {:name (conj path :labels)
-             :label (clojure.string/capitalize label)
-             :value label}]))]
-       [c/form-group
-        "Created at"
-        [:input.form-control
-         {:type :datetime-local
-          :value (if-let [created-at (:created_at @story)]
-                   (datetime/to-datetime-local-string created-at)
-                   "")
-          :disabled true}]]
-       [c/form-group
-        "Updated at"
-        [:input.form-control
-         {:type :datetime-local
-          :value (if-let [updated-at (:updated_at @story)]
-                   (datetime/to-datetime-local-string updated-at)
-                   "")
-          :disabled true}]]]]
+        [:div.col-md-3
+         [c/form-group
+          "Status"
+          [forms/select
+           {:name (conj path :status)
+            :default-value "pending"
+            :class "form-control"}
+           (doall
+            (for [status @(rf/subscribe [:statuses/all])]
+              ^{:key status}
+              [:option {:value status} (clojure.string/capitalize status)]))]]
+         [c/form-group
+          "Priority"
+          [forms/select
+           {:name (conj path :priority)
+            :class "form-control"
+            :save-fn #(js/parseInt %)}
+           (doall
+            (into [[:option {:value ""} ""]]
+                  (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
+                    ^{:key id}
+                    [:option {:value id} name])))]]
+         [c/form-group
+          "Due date"
+          [forms/datetime-input
+           {:name (conj path :due_date)
+            :class "form-control"}]]
+         [c/form-group
+          "Labels"
+          (doall
+           (for [label @(rf/subscribe [:labels/all])]
+             ^{:key label}
+             [forms/checkbox-comp
+              {:name (conj path :labels)
+               :label (clojure.string/capitalize label)
+               :value label}]))]
+         [c/form-group
+          "Created at"
+          [:input.form-control
+           {:type :datetime-local
+            :value (if-let [created-at (:created_at @story)]
+                     (datetime/to-datetime-local-string created-at)
+                     "")
+            :disabled true}]]
+         [c/form-group
+          "Updated at"
+          [:input.form-control
+           {:type :datetime-local
+            :value (if-let [updated-at (:updated_at @story)]
+                     (datetime/to-datetime-local-string updated-at)
+                     "")
+            :disabled true}]]]]
 
 
-     :footer footer}]])
+       :footer footer}]]))
 
 (defn edit-story-ui
   "Component to edit a story."

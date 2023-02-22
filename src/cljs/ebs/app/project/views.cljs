@@ -1,10 +1,12 @@
 (ns ebs.app.project.views
   (:require
+   clojure.string
    ebs.app.project.handlers
    [ebs.utils.components :as c]
    [ebs.utils.datetime :as datetime]
    [ebs.utils.views :as views]
    [ebs.utils.forms :as forms]
+   [markdown.core :as md]
    [re-frame.core :as rf]
    [reagent.core :as r]
    [reitit.frontend.easy :as rfe]))
@@ -47,7 +49,8 @@
 (defn project-ui
   "Component to display a project."
   [{:keys [path title footer]}]
-  (r/with-let [project (rf/subscribe path)]
+  (r/with-let [project (rf/subscribe path)
+               view-mode? (r/atom true)]
     [views/base-ui
      [c/card
       {:title title
@@ -55,6 +58,7 @@
        :body
        [:div.row
         [:div.col-md-9
+
          (when-not (:id @project)
            [c/form-group
             "Title"
@@ -63,23 +67,24 @@
               :name (conj path :title)
               :placeholder "Title"
               :class "form-control"}]])
-         (if (:id @project)
-           [c/toggle-comp
-            (:description @project)
-            [c/form-group
-             "Description"
-             [forms/textarea
-              {:name (conj path :description)
-               :placeholder "Description"
-               :class "form-control"
-               :rows 6}]]]
-           [c/form-group
-            "Description"
+
+         [c/form-group
+          [:span "Description "
+           [:button.btn.btn-primary.btn-sm
+            {:on-click #(swap! view-mode? not)}
+            (if @view-mode? "Edit" "View")]]
+          (if @view-mode?
+            [:div
+             (if (clojure.string/blank? (:description @project))
+               "Add a more detailed description..."
+               {:dangerouslySetInnerHTML
+                {:__html (md/md->html (:description @project))}})]
             [forms/textarea
              {:name (conj path :description)
               :placeholder "Description"
               :class "form-control"
-              :rows 6}]])]
+              :rows 10}])]]
+
         [:div.col-md-3
          [c/form-group
           "Created at"
@@ -89,6 +94,7 @@
                      (datetime/to-datetime-local-string created-at)
                      "")
             :disabled true}]]
+
          [c/form-group
           "Updated at"
           [:input.form-control

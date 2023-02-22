@@ -161,15 +161,16 @@
  :timer/create-interval!
  events/base-interceptors
  (fn [_ [{:keys [task-id start-datetime end-datetime]}]]
-   {:http-xhrio {:method :post
-                 :uri "/api/intervals"
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :params {:task_id task-id
-                          :start (datetime/unparse-utc-datetime start-datetime)
-                          :end (datetime/unparse-utc-datetime end-datetime)}
-                 :on-success [:common/log]
-                 :on-failure [:common/set-error]}}))
+   (when (and task-id start-datetime end-datetime)
+     {:http-xhrio {:method :post
+                   :uri "/api/intervals"
+                   :format (ajax/json-request-format)
+                   :response-format (ajax/json-response-format {:keywords? true})
+                   :params {:task_id task-id
+                            :start (datetime/unparse-utc-datetime start-datetime)
+                            :end (datetime/unparse-utc-datetime end-datetime)}
+                   :on-success [:common/log]
+                   :on-failure [:common/set-error]}})))
 
 (rf/reg-event-fx
  :timer/start
@@ -250,9 +251,6 @@
 ; ------------------------------------------------------------------------------
 ; SUBSCRIPTIONS
 ; ------------------------------------------------------------------------------
-
-; This is the task value of the select input.
-(rf/reg-sub :timer/select-task-id events/query)
 
 (rf/reg-sub
  :timer/settings
