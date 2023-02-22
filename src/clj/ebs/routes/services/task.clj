@@ -2,6 +2,7 @@
   (:require
    [clojure.spec.alpha :as s]
    [ebs.routes.services.common :as common]
+   [ebs.routes.services.interval :as interval]
    [ebs.utils.fsdb :as fsdb]
    [ring.util.http-response :as response]))
 
@@ -56,6 +57,12 @@
 
 (s/def :task/tasks (s/* :task/Task))
 
+(defn assoc-time-elapsed
+  "Add time elapsed to a task."
+  [task]
+  (assoc task :time-elapsed
+         (interval/task-intervals->time-elapsed (:id task))))
+
 ;;; ---------------------------------------------------------------------------
 ;;; ROUTES
 
@@ -64,7 +71,8 @@
   [_]
   (response/ok
    (if-let [tasks (seq (fsdb/get-all :task))]
-     tasks
+     (for [task tasks]
+       (assoc-time-elapsed task))
      [])))
 
 (defn get-story-tasks
@@ -72,14 +80,18 @@
   [story_id]
   (response/ok
    (if-let [tasks (seq (fsdb/select :task {:where #(= (:story_id %) story_id)}))]
-     tasks
+     (for [task tasks]
+       (assoc-time-elapsed task))
      [])))
+
+#_(get-story-tasks 15)
 
 (defn get-task
   "Return a task record by id."
   [id]
   (if-let [task (fsdb/get-by-id :task id)]
-    (response/ok task)
+    (response/ok
+     (assoc-time-elapsed task))
     (response/not-found {:result {:message "Task not found."}})))
 
 (defn create-task!

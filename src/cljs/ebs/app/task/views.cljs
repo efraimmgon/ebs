@@ -3,7 +3,8 @@
    [reagent.core :as r]
    [re-frame.core :as rf]
    [ebs.utils.forms :as forms]
-   ebs.app.task.handlers))
+   ebs.app.task.handlers
+   [ebs.utils.datetime :as datetime]))
 
 (defn temporary-id?
   "Returns true if the id is a temporary id (a gensym)."
@@ -23,7 +24,7 @@
                                  (if (= status "complete")
                                    "pending"
                                    "complete")])}]]
-    [:div.form-group.col-md-8
+    [:div.form-group.col-md-7
      [forms/textarea
       {:name (conj path :title)
        :rows 1
@@ -39,7 +40,7 @@
       {:type "number"
        :disabled true
        :value ""}]]
-    [:div.form-group.col-md-1
+    [:div.form-group.col-md-2
      ""]]
 
    [:div.form-row
@@ -77,24 +78,32 @@
                            (rf/dispatch
                             [:timer/task-completed-being-tracked]))
                          (rf/dispatch [:task/update! @task]))}]]
-      [:div.form-group.col-md-8
+      ;; title
+      [:div.form-group.col-md-7
        [forms/textarea
         {:name (conj path :title)
          :rows 1
          :class "form-control"
          :auto-focus (temporary-id? (:id @task))
          :on-blur #(rf/dispatch [:task/update! @task])}]]
+
+      ;; current-estimate
       [:div.form-group.col-md-1
        [forms/input
         {:type :number
          :name (conj path :current_estimate)
          :class "form-control"
          :on-blur #(rf/dispatch [:task/update! @task])}]]
-      [:div.form-group.col-md-1
-       [:input.form-control
-        {:type "number"
-         :disabled true
-         :value ""}]]
+
+      ;; time-elapsed
+      [:div.form-group.col-md-2
+       (let [{:keys [hours minutes]} (-> @task :time-elapsed datetime/ms->hours-mins-sec)]
+         [:div
+          (str (if (< hours 10) "0" "") hours "h"
+               (if (< minutes 10) "0" "")
+               minutes
+               "min")])]
+
       [:div.form-group.col-md-1
        [:button.btn.btn-light
         {:on-click #(rf/dispatch [:task/delete! (:id @task)])}
@@ -123,11 +132,11 @@
         [:div.form-row.text-center
          [:div.form-group.col-md-1
           [:label "Done?"]]
-         [:div.form-group.col-md-8
+         [:div.form-group.col-md-7
           [:label "Title"]]
          [:div.form-group.col-md-1
           [:label "Estimate"]]
-         [:div.form-group.col-md-1
+         [:div.form-group.col-md-2
           [:label "Elapsed"]]
          [:div.form-group.col-md-1
           [:label ""]]]
