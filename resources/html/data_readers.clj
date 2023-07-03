@@ -1,0 +1,1 @@
+{inst ebs.middleware.formats/read-instant-timestamp}
