@@ -1,6 +1,6 @@
 (ns ebs.app.auth.core
   (:require
-   [ebs.utils.events :refer [to-edn base-interceptors]]
+   [ebs.utils.events :refer [js->edn base-interceptors]]
    [oops.core :as oops]
    [re-frame.core :as rf]
    ["firebase/auth" :as firebase-auth]
@@ -12,16 +12,18 @@
 
 
 (defn sign-in [auth-provider opts]
-  (-> (firebase-auth/signInWithPopup
-       (auth) auth-provider)
-      (.then (fn [^js result]
-               (rf/dispatch [:set-identity
-                             (-> result (oops/oget "user") to-edn)])
-               (rf/dispatch [:auth/initialize-firestore])))
-      (.catch (fn [e]
-                (if-let [handler (:error-handler opts)]
-                  (handler e)
-                  (js/alert e))))))
+  (let [auth (auth)]
+    (-> (firebase-auth/signInWithPopup
+         auth auth-provider)
+        (.then (fn [^js result]
+                 (rf/dispatch-sync
+                  [:set-identity (-> result (oops/oget "user") js->edn)])
+                 (rf/dispatch-sync [:auth/initialize-firestore])))
+        (.catch (fn [e]
+                  (if-let [handler (:error-handler opts)]
+                    (handler e)
+                    (js/alert e)))))))
+
 
 
 (defn google-sign-in [opts]
@@ -57,11 +59,12 @@
    (assoc db :identity identity)))
 
 
-(rf/reg-event-db
+(rf/reg-event-fx
  :firestore/set-db
  base-interceptors
- (fn [db [firestore-db]]
-   (assoc db :firestore/db firestore-db)))
+ (fn [{:keys [db]} [firestore-db]]
+   {:db (assoc db :firestore/db firestore-db)
+    :dispatch [:projects/load]}))
 
 
 (rf/reg-event-fx
@@ -73,5 +76,3 @@
      (when @current-user
        {:dispatch [:firestore/set-db
                    (firestore/getFirestore @app)]}))))
-
-

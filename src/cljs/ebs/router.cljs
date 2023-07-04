@@ -18,8 +18,11 @@
 (def router
   (reitit/router
    [["/" {:name        :home
-          :view        #'project/projects-ui}]
-          ;:controllers [{:start (fn [_] (rf/dispatch [:projects/load]))}]}]
+          :view        #'project/projects-ui
+          :controllers [{:start (fn [_]
+                                  (let [current-user (rf/subscribe [:identity])]
+                                    (when @current-user
+                                      (rf/dispatch [:projects/load]))))}]}]
     ["/project"
      ["/new"
       {:name :project/new

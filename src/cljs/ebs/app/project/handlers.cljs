@@ -3,7 +3,7 @@
    [ajax.core :as ajax]
    [ebs.utils.datetime :as datetime]
    [ebs.utils.db :as udb]
-   [ebs.utils.events :refer [query base-interceptors]]
+   [ebs.utils.events :refer [query base-interceptors js->edn]]
    [re-frame.core :as rf]))
 
 
@@ -33,29 +33,17 @@
  base-interceptors
  (fn [{:keys [db]} [projects]]
    {:db (assoc db :projects/all
-               (map project->in projects))}))
+               (map js->edn projects))}))
 
-#_(rf/reg-event-fx
-   :projects/load
-   base-interceptors
-   (fn [_ _]
-     {:http-xhrio {:method :get
-                   :uri "/api/projects"
-                   :format (ajax/json-request-format)
-                   :response-format (ajax/json-response-format {:keywords? true})
-                   :on-success [:projects/load-success]
-                   :on-failure [:common/set-error]}}))
 
 (rf/reg-event-fx
  :projects/load
  base-interceptors
  (fn [_ _]
-   {:http-xhrio {:method :get
-                 :uri "/api/projects"
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:projects/load-success]
-                 :on-failure [:common/set-error]}}))
+   (let [current-user (rf/subscribe [:identity])]
+     {:dispatch [:db/get-all-projects-by-user
+                 {:user-id (get @current-user "uid")
+                  :on-success #(rf/dispatch [:projects/load-success %])}]})))
 
 
 (rf/reg-event-fx

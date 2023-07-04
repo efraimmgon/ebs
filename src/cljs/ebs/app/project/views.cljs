@@ -14,7 +14,7 @@
 
 (defn project-card
   "Component to display a project."
-  [{:keys [id title description]}]
+  [{:strs [id title description]}]
   [c/card
    {:title title
     :body [:p description]
@@ -44,7 +44,7 @@
         [:div
          (doall
           (for [project @projects]
-            ^{:key (:id project)}
+            ^{:key (get project "id")}
             [:div [project-card project]
              [:hr]]))]
         [:div "There are no projects yet"])]]))

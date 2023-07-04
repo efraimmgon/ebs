@@ -17,7 +17,7 @@
   (doseq [evt events]
     (rf/dispatch evt)))
 
-(defn to-edn [js-objects]
+(defn js->edn [js-objects]
   (let [reader (transit/reader :json)
         js-objects-str (js/JSON.stringify js-objects)
         edn-data (transit/read reader js-objects-str)]
