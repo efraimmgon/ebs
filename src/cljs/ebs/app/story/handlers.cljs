@@ -27,27 +27,37 @@
     :updated_at (datetime/update-datetime-out :updated_at)))
 
 ;;; ---------------------------------------------------------------------------
+;;; DB
+
+(defn get-all-stories-by-project
+  [{:keys [project-id on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])]
+    (-> (firestore/collection @fdb "projects" project-id "stories")
+        firestore/getDocs
+        (.then (fn [^js querySnapshot]
+                 (-> (oops/oget querySnapshot "docs")
+                     (.map (fn [doc]
+                             (let [data (oops/ocall doc "data")]
+                               (oops/oset! data "!id" (oops/oget doc "id")))))
+                     on-success))))))
+
+;;; ---------------------------------------------------------------------------
 ;;; Events
 
 (rf/reg-event-fx
  :stories/load-success
  events/base-interceptors
  (fn [{:keys [db]} [stories]]
-   (let [stories (->> stories
-                      (map story->in)
-                      (sort-by (juxt :priority :created_at) <))]
-     {:db (assoc db :stories/all stories)})))
+   {:db (assoc db :stories/all stories)}))
 
 (rf/reg-event-fx
  :stories/load
  events/base-interceptors
  (fn [_ [project-id]]
-   {:http-xhrio {:method :get
-                 :uri (str "/api/projects/" project-id "/stories")
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:stories/load-success]
-                 :on-failure [:common/set-error]}}))
+   (get-all-stories-by-project
+    {:project-id project-id
+     :on-success #(rf/dispatch [:stories/load-success %])})
+   nil))
 
 (rf/reg-event-fx
  :story/load-success

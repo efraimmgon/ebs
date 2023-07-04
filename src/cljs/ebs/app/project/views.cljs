@@ -63,12 +63,12 @@
        [:div.row
         [:div.col-md-9
 
-         (when-not (:id @project)
+         (when-not (get @project "id")
            [c/form-group
             "Title"
             [forms/input
              {:type "text"
-              :name (conj path :title)
+              :name (conj path "title")
               :placeholder "Title"
               :class "form-control"}]])
 
@@ -79,12 +79,12 @@
             (if @view-mode? "Edit" "View")]]
           (if @view-mode?
             [:div
-             (if (clojure.string/blank? (:description @project))
+             (if (clojure.string/blank? (get @project "description"))
                "Add a more detailed description..."
                {:dangerouslySetInnerHTML
-                {:__html (md/md->html (:description @project))}})]
+                {:__html (md/md->html (get @project "description"))}})]
             [forms/textarea
-             {:name (conj path :description)
+             {:name (conj path "description")
               :placeholder "Description"
               :class "form-control"
               :rows 10}])]]
@@ -94,7 +94,7 @@
           "Created at"
           [:input.form-control
            {:type :datetime-local
-            :value (if-let [created-at (:created_at @project)]
+            :value (if-let [created-at (get @project "created_at")]
                      (datetime/to-datetime-local-string created-at)
                      "")
             :disabled true}]]
@@ -103,7 +103,7 @@
           "Updated at"
           [:input.form-control
            {:type :datetime-local
-            :value (if-let [updated-at (:updated_at @project)]
+            :value (if-let [updated-at (get @project "updated_at")]
                      (datetime/to-datetime-local-string updated-at)
                      "")
             :disabled true}]]]]
@@ -143,15 +143,15 @@
       [:div.row
        [:div.col-md-11
         [c/toggle-comp
-         (:title @project)
+         (get @project "title")
          [forms/input
           {:type "text"
-           :name (conj path :title)
+           :name (conj path "title")
            :placeholder "Title"
            :class "form-control"}]]]
        [:div.col-md-1
         [:button.btn.btn-danger.float-right.btn-sm
-         {:on-click #(rf/dispatch [:project/delete! (:id @project)])}
+         {:on-click #(rf/dispatch [:project/delete! (get @project "id")])}
          "Delete"]]]
 
       :footer

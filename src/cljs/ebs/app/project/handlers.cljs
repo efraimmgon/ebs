@@ -43,6 +43,18 @@
                                (oops/oset! data "!id" (oops/oget doc "id")))))
                      on-success))))))
 
+
+(defn get-project-by-id
+  [{:keys [project-id on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])]
+    (-> (firestore/doc @fdb "projects" project-id)
+        firestore/getDoc
+        (.then (fn [^js docSnapshot]
+                 (let [data (oops/ocall docSnapshot "data")]
+                   (oops/oset! data "!id" (oops/oget docSnapshot "id"))
+                   (when on-success
+                     (on-success data))))))))
+
 (defn create-project [{:keys [params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])]
     (-> (firestore/addDoc
@@ -120,20 +132,17 @@
  :project/load-project-success
  base-interceptors
  (fn [{:keys [db]} [project]]
-   {:db (assoc db :project/active
-               (project->in project))}))
+   {:db (assoc db :project/active (js->edn project))}))
 
 
 (rf/reg-event-fx
  :project/load-project
  base-interceptors
  (fn [_ [project-id]]
-   {:http-xhrio {:method :get
-                 :uri (str "/api/projects/" project-id)
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:project/load-project-success]
-                 :on-failure [:common/set-error]}}))
+   (get-project-by-id
+    {:project-id project-id
+     :on-success #(rf/dispatch [:project/load-project-success %])})
+   nil))
 
 
 (rf/reg-event-fx

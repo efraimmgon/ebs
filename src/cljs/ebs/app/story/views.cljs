@@ -63,7 +63,7 @@
          "Hide complete stories"
          "View complete stories")]
       [:a.dropdown-item
-       {:href (rfe/href :story/new {:project-id (:id @project)})}
+       ; {:href (rfe/href :story/new {:project-id (:id @project)})}
        "New Story"]]]))
 
 (defn new-story-modal
