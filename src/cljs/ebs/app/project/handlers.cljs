@@ -4,7 +4,9 @@
    [ebs.utils.datetime :as datetime]
    [ebs.utils.db :as udb]
    [ebs.utils.events :refer [query base-interceptors js->edn]]
-   [re-frame.core :as rf]))
+   [oops.core :as oops]
+   [re-frame.core :as rf]
+   ["firebase/firestore" :as firestore]))
 
 
 (defn project->in
@@ -23,6 +25,32 @@
     :updated_at (datetime/update-datetime-out :updated_at)))
 
 
+;;; ---------------------------------------------------------------------------
+;;; DB
+
+(defn get-all-projects-by-user
+  [{:keys [user_id on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])
+        collRef (firestore/collection
+                 @fdb "projects")
+        q (firestore/query collRef (firestore/where "user_id" "==" user_id))]
+    (-> q
+        firestore/getDocs
+        (.then (fn [^js querySnapshot]
+                 (-> (oops/oget querySnapshot "docs")
+                     (.map (fn [doc]
+                             (let [data (oops/ocall doc "data")]
+                               (oops/oset! data "!id" (oops/oget doc "id")))))
+                     on-success))))))
+
+(defn create-project [{:keys [params on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])]
+    (-> (firestore/addDoc
+         (firestore/collection @fdb "projects")
+         (clj->js params))
+        (.then (fn [^js docRef]
+                 (when on-success
+                   (on-success (oops/oget docRef "id"))))))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Events
@@ -41,17 +69,18 @@
  base-interceptors
  (fn [_ _]
    (let [current-user (rf/subscribe [:identity])]
-     {:dispatch [:db/get-all-projects-by-user
-                 {:user-id (get @current-user "uid")
-                  :on-success #(rf/dispatch [:projects/load-success %])}]})))
+     (get-all-projects-by-user
+      {:user_id (get @current-user "uid")
+       :on-success #(rf/dispatch [:projects/load-success %])})
+     nil)))
 
 
 (rf/reg-event-fx
  :project/create-success
  base-interceptors
- (fn [{:keys [db]} [project]]
+ (fn [{:keys [db]} [project_id]]
    {:dispatch [:navigate! :project/view-stories
-               {:project-id (:id project)}]
+               {:project-id project_id}]
     :db (dissoc db :project/new)}))
 
 
@@ -59,13 +88,11 @@
  :project/create!
  base-interceptors
  (fn [_ [project]]
-   {:http-xhrio {:method :post
-                 :uri "/api/projects"
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:project/create-success]
-                 :on-failure [:common/set-error]
-                 :params @project}}))
+   (let [current-user (rf/subscribe [:identity])]
+     (create-project
+      {:params (assoc project :user_id (get @current-user "uid"))
+       :on-success #(rf/dispatch [:project/create-success %])})
+     nil)))
 
 
 (rf/reg-event-fx

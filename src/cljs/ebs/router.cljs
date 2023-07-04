@@ -4,7 +4,6 @@
    [reitit.core :as reitit]
    [reitit.frontend.easy :as rfe]
    [re-frame.core :as rf]
-   [ebs.app.auth.core :as auth]
    [ebs.app.project.views :as project]
    [ebs.app.story.views :as story]))
 
