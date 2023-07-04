@@ -4,7 +4,9 @@
    [ajax.core :as ajax]
    [ebs.utils.datetime :as datetime]
    [ebs.utils.events :as events]
-   [re-frame.core :as rf]))
+   [oops.core :as oops]
+   [re-frame.core :as rf]
+   ["firebase/firestore" :as firestore]))
 
 ; (1) The checkbox input expects a set of labels, but the API returns a vector.
 (defn story->in
