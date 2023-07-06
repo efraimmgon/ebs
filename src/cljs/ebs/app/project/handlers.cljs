@@ -24,6 +24,24 @@
     :created_at (datetime/update-datetime-out :created_at)
     :updated_at (datetime/update-datetime-out :updated_at)))
 
+(defn add-id [docRef params]
+  (assoc params
+         :id (oops/oget docRef "id")))
+
+(defn add-timestamps [params]
+  (let [now (firestore/serverTimestamp)]
+    (assoc params
+           :created_at now
+           :updated_at now)))
+
+(defn update-timestamp [params]
+  (assoc params
+         :updated_at (firestore/serverTimestamp)))
+
+(defn prepare-input [docRef params]
+  (-> (add-id docRef params)
+      add-timestamps
+      clj->js))
 
 ;;; ---------------------------------------------------------------------------
 ;;; DB
@@ -56,10 +74,26 @@
                      (on-success data))))))))
 
 (defn create-project [{:keys [params on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])
+        docRef (firestore/collection @fdb "projects")]
+    (-> (firestore/setDoc docRef (prepare-input docRef params))
+        (.then (fn [^js docRef]
+                 (when on-success
+                   (on-success (oops/oget docRef "id"))))))))
+
+(defn update-project [{:keys [project-id params on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])
+        params (assoc params "updated_at" (firestore/serverTimestamp))]
+    (-> (firestore/doc @fdb "projects" project-id)
+        (firestore/updateDoc (-> params update-timestamp clj->js))
+        (.then (fn [^js docRef]
+                 (when on-success
+                   (on-success (oops/oget docRef "id"))))))))
+
+(defn delete-project [{:keys [project-id on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])]
-    (-> (firestore/addDoc
-         (firestore/collection @fdb "projects")
-         (clj->js params))
+    (-> (firestore/doc @fdb "projects" project-id)
+        firestore/deleteDoc
         (.then (fn [^js docRef]
                  (when on-success
                    (on-success (oops/oget docRef "id"))))))))
@@ -114,18 +148,14 @@
    {:dispatch [:navigate! :home]
     :db (dissoc db :project/active)}))
 
-
 (rf/reg-event-fx
  :project/update!
  base-interceptors
  (fn [{:keys [db]} [project]]
-   {:http-xhrio {:method :put
-                 :uri (str "/api/projects/" (:id @project))
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:project/update-success]
-                 :on-failure [:common/set-error]
-                 :params (project->out @project)}}))
+   (update-project
+    {:project-id (:id @project)
+     :params (project->out @project)
+     :on-success #(rf/dispatch [:project/update-success %])})))
 
 
 (rf/reg-event-fx
