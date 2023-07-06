@@ -182,17 +182,24 @@
    {:dispatch [:navigate! :home]
     :db (dissoc db :project/active)}))
 
-
 (rf/reg-event-fx
  :project/delete!
  base-interceptors
  (fn [_ [project-id]]
-   {:http-xhrio {:method :delete
-                 :uri (str "/api/projects/" project-id)
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:project/delete-success]
-                 :on-failure [:common/set-error]}}))
+   (delete-project
+    {:project-id project-id
+     :on-success #(rf/dispatch [:project/delete-success %])})))
+
+#_(rf/reg-event-fx
+   :project/delete!
+   base-interceptors
+   (fn [_ [project-id]]
+     {:http-xhrio {:method :delete
+                   :uri (str "/api/projects/" project-id)
+                   :format (ajax/json-request-format)
+                   :response-format (ajax/json-response-format {:keywords? true})
+                   :on-success [:project/delete-success]
+                   :on-failure [:common/set-error]}}))
 
 
 
