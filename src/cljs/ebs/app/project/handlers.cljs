@@ -75,11 +75,14 @@
 
 (defn create-project [{:keys [params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
-        docRef (firestore/collection @fdb "projects")]
-    (-> (firestore/setDoc docRef (prepare-input docRef params))
-        (.then (fn [^js docRef]
+
+        docRef (-> (firestore/collection @fdb "projects") firestore/doc)
+        jsdata (prepare-input docRef params)]
+    (-> (firestore/setDoc docRef jsdata)
+        (.then (fn [^js doc]
                  (when on-success
-                   (on-success (oops/oget docRef "id"))))))))
+                   (on-success (oops/oget jsdata "id"))))))))
+
 
 (defn update-project [{:keys [project-id params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
@@ -136,7 +139,7 @@
  (fn [_ [project]]
    (let [current-user (rf/subscribe [:identity])]
      (create-project
-      {:params (assoc project :user_id (get @current-user "uid"))
+      {:params (assoc @project "user_id" (get @current-user "uid"))
        :on-success #(rf/dispatch [:project/create-success %])})
      nil)))
 
@@ -156,7 +159,8 @@
    (update-project
     {:project-id (:id @project)
      :params (project->out @project)
-     :on-success #(rf/dispatch [:project/update-success %])})))
+     :on-success #(rf/dispatch [:project/update-success %])})
+   nil))
 
 
 (rf/reg-event-fx
@@ -190,7 +194,8 @@
  (fn [_ [project-id]]
    (delete-project
     {:project-id project-id
-     :on-success #(rf/dispatch [:project/delete-success %])})))
+     :on-success #(rf/dispatch [:project/delete-success %])})
+   nil))
 
 
 ;;; ---------------------------------------------------------------------------
