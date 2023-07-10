@@ -1,8 +1,5 @@
 (ns ebs.app.project.handlers
   (:require
-   [ajax.core :as ajax]
-   [ebs.utils.datetime :as datetime]
-   [ebs.utils.db :as udb]
    [ebs.utils.events :refer [query base-interceptors js->edn]]
    [oops.core :as oops]
    [re-frame.core :as rf]
