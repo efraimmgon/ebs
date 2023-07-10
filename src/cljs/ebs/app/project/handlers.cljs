@@ -8,32 +8,20 @@
    [re-frame.core :as rf]
    ["firebase/firestore" :as firestore]))
 
-
-(defn project->out
-  "Coerce project data for the API."
-  [project]
-  (cond-> project
-    :created_at (datetime/update-datetime-out :created_at)
-    :updated_at (datetime/update-datetime-out :updated_at)))
-
 (defn add-id [docRef params]
-  (assoc params
-         :id (oops/oget docRef "id")))
+  (oops/oset! params "!id" (oops/oget docRef "id")))
 
 (defn add-timestamps [params]
   (let [now (firestore/serverTimestamp)]
-    (assoc params
-           :created_at now
-           :updated_at now)))
+    (oops/oset! params "!created_at" now)
+    (oops/oset! params "!updated_at" now)))
 
 (defn update-timestamp [params]
-  (assoc params
-         :updated_at (firestore/serverTimestamp)))
+  (oops/oset! params "!updated_at" (firestore/serverTimestamp)))
 
 (defn prepare-input [docRef params]
   (-> (add-id docRef params)
-      add-timestamps
-      clj->js))
+      add-timestamps))
 
 ;;; ---------------------------------------------------------------------------
 ;;; DB
@@ -69,27 +57,28 @@
         docRef (-> (firestore/collection @fdb "projects") firestore/doc)
         jsdata (prepare-input docRef params)]
     (-> (firestore/setDoc docRef jsdata)
-        (.then (fn [^js doc]
+        (.then (fn [^js _]
                  (when on-success
                    (on-success (oops/oget jsdata "id"))))))))
 
-
+(def doc (atom nil))
 (defn update-project [{:keys [project-id params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
-        params (assoc params "updated_at" (firestore/serverTimestamp))]
+        params (oops/oset! params "!updated_at" (firestore/serverTimestamp))]
     (-> (firestore/doc @fdb "projects" project-id)
-        (firestore/updateDoc (-> params update-timestamp clj->js))
+        (firestore/updateDoc (-> params update-timestamp))
         (.then (fn [^js docRef]
+                 (reset! doc docRef)
                  (when on-success
-                   (on-success (oops/oget docRef "id"))))))))
+                   (on-success project-id)))))))
 
 (defn delete-project [{:keys [project-id on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])]
     (-> (firestore/doc @fdb "projects" project-id)
         firestore/deleteDoc
-        (.then (fn [^js docRef]
+        (.then (fn [^js _]
                  (when on-success
-                   (on-success (oops/oget docRef "id"))))))))
+                   (on-success project-id)))))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Events
@@ -99,7 +88,7 @@
  :projects/load-success
  base-interceptors
  (fn [{:keys [db]} [projects]]
-   {:db (assoc db :projects/all projects)}))
+   {:db (assoc db :projects/all (js->edn projects))}))
 
 
 (rf/reg-event-fx
@@ -116,9 +105,9 @@
 (rf/reg-event-fx
  :project/create-success
  base-interceptors
- (fn [{:keys [db]} [project_id]]
+ (fn [{:keys [db]} [project-id]]
    {:dispatch [:navigate! :project/view-stories
-               {:project-id project_id}]
+               {:project-id project-id}]
     :db (dissoc db :project/new)}))
 
 
@@ -128,7 +117,10 @@
  (fn [_ [project]]
    (let [current-user (rf/subscribe [:identity])]
      (create-project
-      {:params (assoc @project "user_id" (get @current-user "uid"))
+      {:params (-> @project
+                   (select-keys ["title" "description"])
+                   (assoc "user_id" (get @current-user "uid"))
+                   clj->js)
        :on-success #(rf/dispatch [:project/create-success %])})
      nil)))
 
@@ -144,10 +136,12 @@
 (rf/reg-event-fx
  :project/update!
  base-interceptors
- (fn [{:keys [db]} [project]]
+ (fn [_ [project]]
    (update-project
-    {:project-id (:id @project)
-     :params (project->out @project)
+    {:project-id (get @project "id")
+     :params (-> @project
+                 (select-keys ["title" "description"])
+                 clj->js)
      :on-success #(rf/dispatch [:project/update-success %])})
    nil))
 
