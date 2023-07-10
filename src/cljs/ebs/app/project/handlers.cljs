@@ -9,14 +9,6 @@
    ["firebase/firestore" :as firestore]))
 
 
-(defn project->in
-  "Coerce project data for the views."
-  [project]
-  (cond-> project
-    :created_at (datetime/update-datetime-in :created_at)
-    :updated_at (datetime/update-datetime-in :updated_at)))
-
-
 (defn project->out
   "Coerce project data for the API."
   [project]
@@ -67,7 +59,6 @@
         firestore/getDoc
         (.then (fn [^js docSnapshot]
                  (let [data (oops/ocall docSnapshot "data")]
-                   (oops/oset! data "!id" (oops/oget docSnapshot "id"))
                    (when on-success
                      (on-success data))))))))
 

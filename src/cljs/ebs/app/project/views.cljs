@@ -7,6 +7,7 @@
    [ebs.utils.views :as views]
    [ebs.utils.forms :as forms]
    [markdown.core :as md]
+   [oops.core :as oops]
    [re-frame.core :as rf]
    [reagent.core :as r]
    [reitit.frontend.easy :as rfe]))
@@ -14,20 +15,22 @@
 
 (defn project-card
   "Component to display a project."
-  [{:strs [id title description]}]
-  [c/card
-   {:title title
-    :body [:p description]
-    :footer
-    [:div
+  [project]
+  (let [id (oops/oget project "id")]
+    [c/card
+     {:title (oops/oget project "?title")
+      :body [:p (oops/oget project "?description")]
+      :footer
+      [:div
      ; Use a link instead of a button
-     [:a.btn.btn-primary
-      {:href (rfe/href :project/view-stories {:project-id id})}
-      "Open"] " "
-     [:a.btn.btn-warning
-      {:href (rfe/href :project/edit {:project-id id})}
-      "Edit"] " "]}])
+       [:a.btn.btn-primary
+        {:href (rfe/href :project/view-stories {:project-id id})}
+        "Open"] " "
+       [:a.btn.btn-warning
+        {:href (rfe/href :project/edit {:project-id id})}
+        "Edit"] " "]}]))
 
+(def projects (rf/subscribe [:projects/all]))
 
 (defn projects-ui
   "Component to display the projects."
@@ -44,7 +47,7 @@
         [:div
          (doall
           (for [project @projects]
-            ^{:key (get project "id")}
+            ^{:key (oops/oget project "id")}
             [:div [project-card project]
              [:hr]]))]
         [:div "There are no projects yet"])]]))
