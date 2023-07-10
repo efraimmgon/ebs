@@ -2,7 +2,8 @@
   (:require
    clojure.string
    [cljs-time.core :as time]
-   [cljs-time.format :as tf]))
+   [cljs-time.format :as tf]
+   [oops.core :as oops]))
 
 (def iso-zoned-date (tf/formatter "yyyy-MM-dd'T'HH:mm:ss.SSSZ"))
 
@@ -16,6 +17,9 @@
 (defn to-datetime-local [string]
   (->> string
        (tf/parse-local datetime-local)))
+
+(defn to-user-friendly-datetime [firestore-timestamp]
+  (-> firestore-timestamp (oops/ocall "toDate") .toISOString))
 
 (defn datetime-out
   "Converts a goog.date.DateTime obj to a format that can be parsed by 
@@ -45,7 +49,16 @@
        (tf/parse iso-zoned-date)
        time/to-default-time-zone))
 
-#_(datetime-in "2023-02-14T15:53:41.066Z")
+
+(defn firestore->datetime-input-fmt
+  [firestore-timestamp]
+  (when firestore-timestamp
+    (-> firestore-timestamp
+        (oops/ocall "toDate")
+        .toJSON
+        datetime-in
+        to-datetime-local-string)))
+
 
 (defn update-datetime-in [m k]
   (let [v (get m k)]

@@ -48,11 +48,9 @@
 
 (defn get-all-projects-by-user
   [{:keys [user_id on-success]}]
-  (let [fdb (rf/subscribe [:firestore/db])
-        collRef (firestore/collection
-                 @fdb "projects")
-        q (firestore/query collRef (firestore/where "user_id" "==" user_id))]
-    (-> q
+  (let [fdb (rf/subscribe [:firestore/db])]
+    (-> (firestore/collection @fdb "projects")
+        (firestore/query (firestore/where "user_id" "==" user_id))
         firestore/getDocs
         (.then (fn [^js querySnapshot]
                  (-> (oops/oget querySnapshot "docs")
@@ -72,6 +70,7 @@
                    (oops/oset! data "!id" (oops/oget docSnapshot "id"))
                    (when on-success
                      (on-success data))))))))
+
 
 (defn create-project [{:keys [params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
@@ -109,8 +108,7 @@
  :projects/load-success
  base-interceptors
  (fn [{:keys [db]} [projects]]
-   {:db (assoc db :projects/all
-               (map js->edn projects))}))
+   {:db (assoc db :projects/all projects)}))
 
 
 (rf/reg-event-fx

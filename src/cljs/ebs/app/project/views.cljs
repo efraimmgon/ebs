@@ -95,7 +95,7 @@
           [:input.form-control
            {:type :datetime-local
             :value (if-let [created-at (get @project "created_at")]
-                     (datetime/to-datetime-local-string created-at)
+                     (datetime/firestore->datetime-input-fmt created-at)
                      "")
             :disabled true}]]
 
@@ -104,7 +104,7 @@
           [:input.form-control
            {:type :datetime-local
             :value (if-let [updated-at (get @project "updated_at")]
-                     (datetime/to-datetime-local-string updated-at)
+                     (datetime/firestore->datetime-input-fmt updated-at)
                      "")
             :disabled true}]]]]
 
