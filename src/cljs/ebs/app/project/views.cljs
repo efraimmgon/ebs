@@ -3,9 +3,9 @@
    clojure.string
    ebs.app.project.handlers
    [ebs.utils.components :as c]
+   [ebs.utils.input :as input]
    [ebs.utils.views :as views]
    [markdown.core :as md]
-   [oops.core :as oops]
    [re-frame.core :as rf]
    [reagent.core :as r]
    [reitit.frontend.easy :as rfe]))
@@ -13,7 +13,7 @@
 
 (defn project-card
   "Component to display a project."
-  [{:strs [id title description]}]
+  [{:keys [id title description]}]
   [c/card
    {:title title
     :body [:p description]
@@ -43,7 +43,7 @@
         [:div
          (doall
           (for [project @projects]
-            ^{:key (get project "id")}
+            ^{:key (:id project)}
             [:div [project-card project]
              [:hr]]))]
         [:div "There are no projects yet"])]]))
@@ -62,14 +62,13 @@
         [:div.col-md-9
 
          ;;; Title
-         (when-not (get @project "id")
+         (when-not (:id @project)
            [c/form-group
             "Title"
-            [:input.form-control
-             {:type "text"
-              :value (get @project "title")
-              :on-change (fn [e]
-                           (swap! project assoc "title" (-> e .-target .-value)))
+            [input/text-input
+             {:name :title
+              :doc project
+              :class "form-control"
               :placeholder "Title"}]])
 
          ;;; Description
@@ -78,7 +77,7 @@
            [:button.btn.btn-primary.btn-sm
             {:on-click #(swap! view-mode? not)}
             (if @view-mode? "Edit" "View")]]
-          (let [?description (get @project "description")]
+          (let [?description (:description @project)]
           ;; View or edit mode
             (if @view-mode?
               [:div
@@ -86,12 +85,12 @@
                  "Add a more detailed description..."
                  {:dangerouslySetInnerHTML
                   {:__html (md/md->html ?description)}})]
-              [:textarea.form-control
-               {:placeholder "Description"
-                :rows 10
-                :value ?description
-                :on-change (fn [e]
-                             (swap! project assoc "description" (-> e .-target .-value)))}]))]]
+              [input/textarea
+               {:name :description
+                :doc project
+                :class "form-control"
+                :placeholder "Description"
+                :rows 10}]))]]
 
 
         [:div.col-md-3
@@ -154,18 +153,18 @@
 
             ;; Toggle view/edit mode
             [c/toggle-comp
-             (get @project "title")
-             [:input.form-control
-              {:type "text"
-               :placeholder "Title"
-               :value (get @project "title")
-               :on-change #(swap! project assoc "title"
-                                  (-> % .-target .-value))}]]]
+             (:title @project)
+             [input/text-input
+              {:name :title
+               :doc project
+               :class "form-control"
+               :placeholder "Title"}]]]
+
 
            ;;; Delete
            [:div.col-md-1
             [:button.btn.btn-danger.float-right.btn-sm
-             {:on-click #(rf/dispatch [:project/delete! (get @project "id")])}
+             {:on-click #(rf/dispatch [:project/delete! (:id @project)])}
              "Delete"]]]
 
           :footer

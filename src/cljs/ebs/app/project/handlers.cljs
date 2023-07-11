@@ -6,13 +6,6 @@
    [re-frame.core :as rf]
    ["firebase/firestore" :as firestore]))
 
-
-(defn project->in [project]
-  (-> project
-      js->edn
-      (assoc "created_at" (oops/oget project "!created_at"))
-      (assoc "updated_at" (oops/oget project "!updated_at"))))
-
 ;;; ---------------------------------------------------------------------------
 ;;; DB
 
@@ -77,7 +70,7 @@
  :projects/load-success
  base-interceptors
  (fn [{:keys [db]} [projects]]
-   {:db (assoc db :projects/all (map project->in projects))}))
+   {:db (assoc db :projects/all (map #(js->clj % :keywordize-keys true) projects))}))
 
 
 (rf/reg-event-fx
@@ -107,9 +100,8 @@
    (let [current-user (rf/subscribe [:identity])]
      (create-project
       {:params (-> @project
-                   (select-keys ["title" "description"])
-                   (assoc "user_id" (get @current-user "uid"))
-                   clj->js)
+                   (select-keys [:title :description])
+                   (assoc :user_id (get @current-user "uid")))
        :on-success #(rf/dispatch [:project/create-success %])})
      nil)))
 
@@ -127,10 +119,9 @@
  base-interceptors
  (fn [_ [project]]
    (update-project
-    {:project-id (get @project "id")
+    {:project-id (:id @project)
      :params (-> @project
-                 (select-keys ["title" "description"])
-                 clj->js)
+                 (select-keys [:title :description]))
      :on-success #(rf/dispatch [:project/update-success %])})
    nil))
 
@@ -139,7 +130,7 @@
  :project/load-project-success
  base-interceptors
  (fn [{:keys [db]} [project]]
-   {:db (assoc db :project/active (project->in project))}))
+   {:db (assoc db :project/active (js->clj project :keywordize-keys true))}))
 
 
 (rf/reg-event-fx
