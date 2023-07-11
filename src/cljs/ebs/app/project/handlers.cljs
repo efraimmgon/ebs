@@ -1,58 +1,10 @@
 (ns ebs.app.project.handlers
   (:require
    [ebs.utils.db :as db]
-   [ebs.utils.events :refer [query base-interceptors js->edn]]
+   [ebs.utils.events :refer [query base-interceptors]]
    [oops.core :as oops]
    [re-frame.core :as rf]
    ["firebase/firestore" :as firestore]))
-
-;;; ---------------------------------------------------------------------------
-;;; DB
-
-(defn get-all-projects-by-user
-  [{:keys [user_id on-success]}]
-  (let [fdb (rf/subscribe [:firestore/db])]
-    (-> (firestore/collection @fdb "projects")
-        (firestore/query (firestore/where "user_id" "==" user_id))
-        firestore/getDocs
-        (.then (fn [^js querySnapshot]
-                 (-> (oops/oget querySnapshot "docs")
-                     (.map (fn [doc]
-                             (oops/ocall doc "data")))
-                     on-success))))))
-
-
-(defn get-project-by-id
-  [{:keys [project-id on-success]}]
-  (let [fdb (rf/subscribe [:firestore/db])]
-    (-> (firestore/doc @fdb "projects" project-id)
-        firestore/getDoc
-        (.then (fn [^js docSnapshot]
-                 (let [data (oops/ocall docSnapshot "data")]
-                   (on-success data)))))))
-
-
-(defn create-project [{:keys [params on-success]}]
-  (let [fdb (rf/subscribe [:firestore/db])
-        docRef (-> (firestore/collection @fdb "projects") firestore/doc)
-        params (db/prepare-input docRef params)]
-    (-> (firestore/setDoc docRef (clj->js params))
-        (.then #(on-success params)))))
-
-
-(defn update-project [{:keys [project-id params on-success]}]
-  (let [fdb (rf/subscribe [:firestore/db])
-        params (db/update-timestamp params)]
-    (-> (firestore/doc @fdb "projects" project-id)
-        (firestore/updateDoc (clj->js params))
-        (.then #(on-success params)))))
-
-
-(defn delete-project [{:keys [project-id on-success]}]
-  (let [fdb (rf/subscribe [:firestore/db])]
-    (-> (firestore/doc @fdb "projects" project-id)
-        firestore/deleteDoc
-        (.then #(on-success project-id)))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Events
@@ -70,7 +22,7 @@
  base-interceptors
  (fn [_ _]
    (let [current-user (rf/subscribe [:identity])]
-     (get-all-projects-by-user
+     (db/get-all-projects-by-user
       {:user_id (oops/oget @current-user "uid")
        :on-success #(rf/dispatch [:projects/load-success %])})
      nil)))
@@ -90,7 +42,7 @@
  base-interceptors
  (fn [_ [project]]
    (let [current-user (rf/subscribe [:identity])]
-     (create-project
+     (db/create-project
       {:params (-> @project
                    (select-keys [:title :description])
                    (assoc :user_id (oops/oget @current-user "uid")))
@@ -110,7 +62,7 @@
  :project/update!
  base-interceptors
  (fn [_ [project]]
-   (update-project
+   (db/update-project
     {:project-id (:id @project)
      :params (-> @project
                  (select-keys [:title :description]))
@@ -129,7 +81,7 @@
  :project/load-project
  base-interceptors
  (fn [_ [project-id]]
-   (get-project-by-id
+   (db/get-project-by-id
     {:project-id project-id
      :on-success #(rf/dispatch [:project/load-project-success %])})
    nil))
@@ -147,7 +99,7 @@
  :project/delete!
  base-interceptors
  (fn [_ [project-id]]
-   (delete-project
+   (db/delete-project
     {:project-id project-id
      :on-success #(rf/dispatch [:project/delete-success %])})
    nil))

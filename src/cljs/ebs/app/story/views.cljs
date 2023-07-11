@@ -86,6 +86,7 @@
               "Title"
               [input/text-input
                {:class "form-control"
+                :doc story
                 :name :title
                 :auto-focus true
                 :placeholder "Title"}]]]

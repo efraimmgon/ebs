@@ -2,7 +2,6 @@
   (:require
    clojure.string
    [ajax.core :as ajax]
-   [ebs.utils.datetime :as datetime]
    [ebs.utils.db :as db]
    [ebs.utils.events :as events]
    [oops.core :as oops]
@@ -17,29 +16,6 @@
       (:labels story) (update :labels set)))) ; (1)
 
 
-;;; ---------------------------------------------------------------------------
-;;; DB
-
-(defn get-all-stories-by-project
-  [{:keys [project-id on-success]}]
-  (let [fdb (rf/subscribe [:firestore/db])]
-    (-> (firestore/collection @fdb "projects" project-id "stories")
-        firestore/getDocs
-        (.then (fn [^js querySnapshot]
-                 (-> (oops/oget querySnapshot "docs")
-                     (.map (fn [doc]
-                             (oops/ocall doc "data")))
-                     on-success))))))
-
-(defn create-story
-  [{:keys [params on-success]}]
-  (let [fdb (rf/subscribe [:firestore/db])
-        docRef (-> (firestore/collection @fdb "projects" (:project_id params) "stories")
-                   firestore/doc)
-        params (db/prepare-input docRef params)]
-    (-> docRef
-        (firestore/setDoc (clj->js params))
-        (.then #(on-success params)))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Events
@@ -55,7 +31,7 @@
  :stories/load
  events/base-interceptors
  (fn [_ [project-id]]
-   (get-all-stories-by-project
+   (db/get-all-stories-by-project
     {:project-id project-id
      :on-success #(rf/dispatch [:stories/load-success %])})
    nil))
@@ -92,12 +68,10 @@
  :story/create!
  events/base-interceptors
  (fn [_ [story]]
-   (let [current-user (rf/subscribe [:identity])]
-     (create-story
-      {:params (-> @story
-                   (assoc :user_id (oops/oget @current-user "uid")))
-       :on-success #(rf/dispatch [:story/create-success %])})
-     nil)))
+   (db/create-story
+    {:params @story
+     :on-success #(rf/dispatch [:story/create-success %])})
+   nil))
 
 
 (rf/reg-event-fx
@@ -150,23 +124,22 @@
 (rf/reg-sub :stories/all events/query)
 (rf/reg-sub :stories/show-complete? events/query)
 (rf/reg-sub :story/active events/query)
-(rf/reg-sub :story/new events/query)
 
 (rf/reg-sub
  :stories/pending
  :<- [:stories/all]
  (fn [stories]
-   (filter #(= "pending" (get % "status")) stories)))
+   (filter #(= "pending" (:status %)) stories)))
 
 (rf/reg-sub
  :stories/in-progress
  :<- [:stories/all]
  (fn [stories]
-   (filter #(= "in progress" (get % "status")) stories)))
+   (filter #(= "in progress" (:status %)) stories)))
 
 (rf/reg-sub
  :stories/complete
  :<- [:stories/all]
  (fn [stories]
-   (filter #(= "complete" (get % "status")) stories)))
+   (filter #(= "complete" (:status %)) stories)))
 
