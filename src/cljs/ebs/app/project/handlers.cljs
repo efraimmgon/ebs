@@ -29,38 +29,30 @@
         firestore/getDoc
         (.then (fn [^js docSnapshot]
                  (let [data (oops/ocall docSnapshot "data")]
-                   (when on-success
-                     (on-success data))))))))
+                   (on-success data)))))))
 
 
 (defn create-project [{:keys [params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
-
         docRef (-> (firestore/collection @fdb "projects") firestore/doc)
-        jsdata (db/prepare-input docRef params)]
-    (-> (firestore/setDoc docRef jsdata)
-        (.then (fn [^js _]
-                 (when on-success
-                   (on-success (oops/oget jsdata "id"))))))))
+        params (db/prepare-input docRef params)]
+    (-> (firestore/setDoc docRef (clj->js params))
+        (.then #(on-success params)))))
 
-(def doc (atom nil))
+
 (defn update-project [{:keys [project-id params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
-        params (oops/oset! params "!updated_at" (firestore/serverTimestamp))]
+        params (db/update-timestamp params)]
     (-> (firestore/doc @fdb "projects" project-id)
-        (firestore/updateDoc (-> params db/update-timestamp))
-        (.then (fn [^js docRef]
-                 (reset! doc docRef)
-                 (when on-success
-                   (on-success project-id)))))))
+        (firestore/updateDoc (clj->js params))
+        (.then #(on-success params)))))
+
 
 (defn delete-project [{:keys [project-id on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])]
     (-> (firestore/doc @fdb "projects" project-id)
         firestore/deleteDoc
-        (.then (fn [^js _]
-                 (when on-success
-                   (on-success project-id)))))))
+        (.then #(on-success project-id)))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Events
@@ -79,7 +71,7 @@
  (fn [_ _]
    (let [current-user (rf/subscribe [:identity])]
      (get-all-projects-by-user
-      {:user_id (get @current-user "uid")
+      {:user_id (oops/oget @current-user "uid")
        :on-success #(rf/dispatch [:projects/load-success %])})
      nil)))
 
@@ -101,7 +93,7 @@
      (create-project
       {:params (-> @project
                    (select-keys [:title :description])
-                   (assoc :user_id (get @current-user "uid")))
+                   (assoc :user_id (oops/oget @current-user "uid")))
        :on-success #(rf/dispatch [:project/create-success %])})
      nil)))
 

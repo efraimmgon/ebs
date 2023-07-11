@@ -1,6 +1,6 @@
 (ns ebs.app.auth.core
   (:require
-   [ebs.utils.events :refer [js->edn base-interceptors]]
+   [ebs.utils.events :refer [base-interceptors]]
    [oops.core :as oops]
    [re-frame.core :as rf]
    ["firebase/auth" :as firebase-auth]
@@ -17,13 +17,12 @@
          auth auth-provider)
         (.then (fn [^js result]
                  (rf/dispatch-sync
-                  [:set-identity (-> result (oops/oget "user") js->edn)])
+                  [:set-identity (oops/oget result "user")])
                  (rf/dispatch-sync [:auth/initialize-firestore])))
         (.catch (fn [e]
                   (if-let [handler (:error-handler opts)]
                     (handler e)
                     (js/alert e)))))))
-
 
 
 (defn google-sign-in [opts]

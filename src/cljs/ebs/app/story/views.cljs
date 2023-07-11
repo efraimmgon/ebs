@@ -9,6 +9,7 @@
    [ebs.app.task.views :as task]
    [ebs.utils.components :as c]
    [ebs.utils.datetime :as datetime]
+   [ebs.utils.input :as input]
    [ebs.utils.forms :as forms]
    [ebs.utils.views :as views]
    [reitit.frontend.easy :as rfe]
@@ -83,12 +84,11 @@
       :body [:div
              [c/form-group
               "Title"
-              [:input.form-control
-               {:type :text
+              [input/text-input
+               {:class "form-control"
+                :name :title
                 :auto-focus true
-                :placeholder "Title"
-                :value (get @story "title")
-                :on-change #(swap! story assoc "title" (-> % .-target .-value))}]]]
+                :placeholder "Title"}]]]
 
       :footer [:div
                [:button.btn.btn-primary
@@ -113,7 +113,7 @@
                                    @statuses)]
     [views/base-ui
      [:div
-      [:h1 (get @project "title")
+      [:h1 (:title @project)
        [extra-options project]]]
 
      [:div.row
@@ -130,8 +130,8 @@
            [:button.btn.btn-light.float-right
             {:on-click
              #(rf/dispatch [:modal (partial new-story-modal
-                                            {"status" title
-                                             "project_id" (get @project "id")})])}
+                                            {:status title
+                                             :project_id (:id @project)})])}
             "Add New"]]
           (if (empty? @stories)
             [:p "-"]

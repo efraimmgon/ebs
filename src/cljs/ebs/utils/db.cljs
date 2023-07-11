@@ -7,25 +7,20 @@
 (defn now []
   (firestore/serverTimestamp))
 
-(defn add-id [docRef params]
-  (oops/oset! params "!id" (oops/oget docRef "id")))
 
 (defn add-timestamps [params]
   (let [now (now)]
-    (oops/oset! params "!created_at" now)
-    (oops/oset! params "!updated_at" now)))
+    (-> params
+        (assoc :created_at now)
+        (assoc :updated_at now))))
+
 
 (defn update-timestamp [params]
-  (oops/oset! params "!updated_at" (now)))
+  (assoc params :updated_at (now)))
+
 
 (defn prepare-input [docRef params]
-  (-> (add-id docRef params)
+  (-> params
+      (assoc :id (oops/oget docRef "id"))
       add-timestamps))
 
-(comment
-  (def fdb (rf/subscribe [:firestore/db]))
-
-
-
-  :end)
-  

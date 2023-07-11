@@ -12,20 +12,10 @@
 
 ; (1) The checkbox input expects a set of labels, but the API returns a vector.
 (defn story->in [story]
-  (cond-> (events/js->edn story)
-    (get story "labels") (update "labels" set) ; (1)
-    (get story "due_date") (assoc "due_date" (oops/oget story "!due_date"))
-    true (assoc "created_at" (oops/oget story "!created_at"))
-    true (assoc "updated_at" (oops/oget story "!updated_at"))))
+  (let [story (js->clj story :keywordize-keys true)]
+    (cond-> story
+      (:labels story) (update :labels set)))) ; (1)
 
-
-(defn story->out
-  "Coerce story data for the API."
-  [story]
-  (cond-> story
-    :due_date (datetime/update-datetime-out :due_date)
-    :created_at (datetime/update-datetime-out :created_at)
-    :updated_at (datetime/update-datetime-out :updated_at)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; DB
@@ -44,15 +34,12 @@
 (defn create-story
   [{:keys [params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
-        project-id (oops/oget params "project_id")
-        docRef (-> (firestore/collection @fdb "projects" project-id "stories")
+        docRef (-> (firestore/collection @fdb "projects" (:project_id params) "stories")
                    firestore/doc)
-        js-params (->> params story->out (db/prepare-input docRef))]
+        params (db/prepare-input docRef params)]
     (-> docRef
-        (firestore/setDoc js-params)
-        (.then (fn [_]
-                 (when on-success
-                   (on-success js-params)))))))
+        (firestore/setDoc (clj->js params))
+        (.then #(on-success params)))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Events
@@ -78,8 +65,7 @@
  :story/load-success
  events/base-interceptors
  (fn [{:keys [db]} [story]]
-   (let [story (story->in story)]
-     {:db (assoc db :story/active story)})))
+   {:db (assoc db :story/active (story->in story))}))
 
 
 (rf/reg-event-fx
@@ -99,8 +85,7 @@
  events/base-interceptors
  (fn [_ [story]]
    {:dispatch-n [[:remove-modal]
-                 [:assoc-in [:story/new] nil]
-                 [:update-in [:stories/all] conj (story->in story)]]}))
+                 [:update-in [:stories/all] conj story]]}))
 
 
 (rf/reg-event-fx
@@ -110,8 +95,7 @@
    (let [current-user (rf/subscribe [:identity])]
      (create-story
       {:params (-> @story
-                   (assoc "user_id" (get @current-user "uid"))
-                   clj->js)
+                   (assoc :user_id (oops/oget @current-user "uid")))
        :on-success #(rf/dispatch [:story/create-success %])})
      nil)))
 
@@ -135,7 +119,7 @@
                    :format (ajax/json-request-format)
                    :response-format (ajax/json-response-format {:keywords? true})
                    :params (-> story
-                               story->out
+                               ;story->out
                                (assoc :project_id project-id))
                    :on-success [:story/update-success]
                    :on-failure [:common/set-error]}})))
