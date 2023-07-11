@@ -19,7 +19,7 @@
     :body [:p description]
     :footer
     [:div
-       ; Use a link instead of a button
+         ; Use a link instead of a button
      [:a.btn.btn-primary
       {:href (rfe/href :project/view-stories {:project-id id})}
       "Open"] " "
@@ -27,7 +27,6 @@
       {:href (rfe/href :project/edit {:project-id id})}
       "Edit"] " "]}])
 
-(def projects (rf/subscribe [:projects/all]))
 
 (defn projects-ui
   "Component to display the projects."
@@ -36,7 +35,7 @@
     [views/base-ui
      [:div
       [:hr]
-      [:h1 "Projects!"
+      [:h1 "Projects"
        [:button.btn.btn-primary.float-right
         {:on-click #(rf/dispatch [:navigate! :project/new])}
         "New Project"]]
@@ -69,8 +68,8 @@
             [:input.form-control
              {:type "text"
               :value (get @project "title")
-              :on-change #(swap! project assoc "title"
-                                 (oops/oget % "target" "value"))
+              :on-change (fn [e]
+                           (swap! project assoc "title" (-> e .-target .-value)))
               :placeholder "Title"}]])
 
          ;;; Description
@@ -91,8 +90,8 @@
                {:placeholder "Description"
                 :rows 10
                 :value ?description
-                :on-change #(swap! project assoc "description"
-                                   (oops/oget % "target" "value"))}]))]]
+                :on-change (fn [e]
+                             (swap! project assoc "description" (-> e .-target .-value)))}]))]]
 
 
         [:div.col-md-3
@@ -161,7 +160,7 @@
                :placeholder "Title"
                :value (get @project "title")
                :on-change #(swap! project assoc "title"
-                                  (oops/oget % "target" "value"))}]]]
+                                  (-> % .-target .-value))}]]]
 
            ;;; Delete
            [:div.col-md-1

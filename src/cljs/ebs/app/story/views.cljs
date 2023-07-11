@@ -67,12 +67,10 @@
        "New Story"]]]))
 
 (defn new-story-modal
-  []
-  (r/with-let [path [:story/new]
-               story (rf/subscribe path)
-               create-handler #(rf/dispatch [:story/create! @story])
-               cancel-handler #(do (rf/dispatch [:remove-modal])
-                                   (rf/dispatch [:assoc-in path nil]))]
+  [params]
+  (r/with-let [story (r/atom params)
+               create-handler #(rf/dispatch [:story/create! story])
+               cancel-handler #(rf/dispatch [:remove-modal])]
     [c/modal
      {:header "New Story"
 
@@ -85,12 +83,12 @@
       :body [:div
              [c/form-group
               "Title"
-              [forms/input
+              [:input.form-control
                {:type :text
                 :auto-focus true
-                :name (conj path :title)
                 :placeholder "Title"
-                :class "form-control"}]]]
+                :value (get @story "title")
+                :on-change #(swap! story assoc "title" (-> % .-target .-value))}]]]
 
       :footer [:div
                [:button.btn.btn-primary
@@ -115,7 +113,7 @@
                                    @statuses)]
     [views/base-ui
      [:div
-      [:h1 (:title @project)
+      [:h1 (get @project "title")
        [extra-options project]]]
 
      [:div.row
@@ -130,9 +128,10 @@
 
           [:h3 (clojure.string/capitalize title)
            [:button.btn.btn-light.float-right
-            {:on-click #(do
-                          (rf/dispatch [:modal new-story-modal])
-                          (rf/dispatch [:assoc-in [:story/new :status] title]))}
+            {:on-click
+             #(rf/dispatch [:modal (partial new-story-modal
+                                            {"status" title
+                                             "project_id" (get @project "id")})])}
             "Add New"]]
           (if (empty? @stories)
             [:p "-"]

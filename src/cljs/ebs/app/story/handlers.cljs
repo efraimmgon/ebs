@@ -3,20 +3,21 @@
    clojure.string
    [ajax.core :as ajax]
    [ebs.utils.datetime :as datetime]
+   [ebs.utils.db :as db]
    [ebs.utils.events :as events]
    [oops.core :as oops]
    [re-frame.core :as rf]
    ["firebase/firestore" :as firestore]))
 
+
 ; (1) The checkbox input expects a set of labels, but the API returns a vector.
-(defn story->in
-  "Coerce story data for the views."
-  [story]
-  (cond-> story
-    :labels (update :labels set) ; (1)
-    :due_date (datetime/update-datetime-in :due_date)
-    :created_at (datetime/update-datetime-in :created_at)
-    :updated_at (datetime/update-datetime-in :updated_at)))
+(defn story->in [story]
+  (cond-> (events/js->edn story)
+    (get story "labels") (update "labels" set) ; (1)
+    (get story "due_date") (assoc "due_date" (oops/oget story "!due_date"))
+    true (assoc "created_at" (oops/oget story "!created_at"))
+    true (assoc "updated_at" (oops/oget story "!updated_at"))))
+
 
 (defn story->out
   "Coerce story data for the API."
@@ -37,9 +38,21 @@
         (.then (fn [^js querySnapshot]
                  (-> (oops/oget querySnapshot "docs")
                      (.map (fn [doc]
-                             (let [data (oops/ocall doc "data")]
-                               (oops/oset! data "!id" (oops/oget doc "id")))))
+                             (oops/ocall doc "data")))
                      on-success))))))
+
+(defn create-story
+  [{:keys [params on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])
+        project-id (oops/oget params "project_id")
+        docRef (-> (firestore/collection @fdb "projects" project-id "stories")
+                   firestore/doc)
+        js-params (->> params story->out (db/prepare-input docRef))]
+    (-> docRef
+        (firestore/setDoc js-params)
+        (.then (fn [_]
+                 (when on-success
+                   (on-success js-params)))))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Events
@@ -48,7 +61,8 @@
  :stories/load-success
  events/base-interceptors
  (fn [{:keys [db]} [stories]]
-   {:db (assoc db :stories/all stories)}))
+   {:db (assoc db :stories/all (map story->in stories))}))
+
 
 (rf/reg-event-fx
  :stories/load
@@ -59,12 +73,14 @@
      :on-success #(rf/dispatch [:stories/load-success %])})
    nil))
 
+
 (rf/reg-event-fx
  :story/load-success
  events/base-interceptors
  (fn [{:keys [db]} [story]]
    (let [story (story->in story)]
      {:db (assoc db :story/active story)})))
+
 
 (rf/reg-event-fx
  :story/load
@@ -77,29 +93,27 @@
                  :on-success [:story/load-success]
                  :on-failure [:common/set-error]}}))
 
+
 (rf/reg-event-fx
  :story/create-success
  events/base-interceptors
  (fn [_ [story]]
    {:dispatch-n [[:remove-modal]
                  [:assoc-in [:story/new] nil]
-                 [:update-in [:stories/all] conj story]]}))
+                 [:update-in [:stories/all] conj (story->in story)]]}))
+
 
 (rf/reg-event-fx
  :story/create!
  events/base-interceptors
- (fn [{:keys [db]} [story]]
-   (let [project-id (get-in db [:project/active :id])]
-     (prn :story story)
-     {:http-xhrio {:method :post
-                   :uri (str "/api/projects/" project-id "/stories")
-                   :format (ajax/json-request-format)
-                   :response-format (ajax/json-response-format {:keywords? true})
-                   :params (-> story
-                               story->out
-                               (assoc :project_id project-id))
-                   :on-success [:story/create-success]
-                   :on-failure [:common/set-error]}})))
+ (fn [_ [story]]
+   (let [current-user (rf/subscribe [:identity])]
+     (create-story
+      {:params (-> @story
+                   (assoc "user_id" (get @current-user "uid"))
+                   clj->js)
+       :on-success #(rf/dispatch [:story/create-success %])})
+     nil)))
 
 
 (rf/reg-event-fx
@@ -158,17 +172,17 @@
  :stories/pending
  :<- [:stories/all]
  (fn [stories]
-   (filter #(= "pending" (:status %)) stories)))
+   (filter #(= "pending" (get % "status")) stories)))
 
 (rf/reg-sub
  :stories/in-progress
  :<- [:stories/all]
  (fn [stories]
-   (filter #(= "in progress" (:status %)) stories)))
+   (filter #(= "in progress" (get % "status")) stories)))
 
 (rf/reg-sub
  :stories/complete
  :<- [:stories/all]
  (fn [stories]
-   (filter #(= "complete" (:status %)) stories)))
+   (filter #(= "complete" (get % "status")) stories)))
 

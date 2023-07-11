@@ -75,7 +75,7 @@
       (rf/dispatch-sync [:update-in path save-fn]))))
 
 ;;; ---------------------------------------------------------------------------
-;;; Components
+;;; Re-frame Components
 
 (defmulti input :type)
 

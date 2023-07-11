@@ -55,7 +55,6 @@
          :view #'story/stories-ui
          :controllers [{:parameters {:path [:project-id]}
                         :start (fn [path]
-                                 (prn :viweing-stories)
                                  (rf/dispatch
                                   [:stories/load
                                    (get-in path [:path :project-id])]))}]}]

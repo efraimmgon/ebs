@@ -1,24 +1,11 @@
 (ns ebs.app.project.handlers
   (:require
+   [ebs.utils.db :as db]
    [ebs.utils.events :refer [query base-interceptors js->edn]]
    [oops.core :as oops]
    [re-frame.core :as rf]
    ["firebase/firestore" :as firestore]))
 
-(defn add-id [docRef params]
-  (oops/oset! params "!id" (oops/oget docRef "id")))
-
-(defn add-timestamps [params]
-  (let [now (firestore/serverTimestamp)]
-    (oops/oset! params "!created_at" now)
-    (oops/oset! params "!updated_at" now)))
-
-(defn update-timestamp [params]
-  (oops/oset! params "!updated_at" (firestore/serverTimestamp)))
-
-(defn prepare-input [docRef params]
-  (-> (add-id docRef params)
-      add-timestamps))
 
 (defn project->in [project]
   (-> project
@@ -38,8 +25,7 @@
         (.then (fn [^js querySnapshot]
                  (-> (oops/oget querySnapshot "docs")
                      (.map (fn [doc]
-                             (let [data (oops/ocall doc "data")]
-                               (oops/oset! data "!id" (oops/oget doc "id")))))
+                             (oops/ocall doc "data")))
                      on-success))))))
 
 
@@ -58,7 +44,7 @@
   (let [fdb (rf/subscribe [:firestore/db])
 
         docRef (-> (firestore/collection @fdb "projects") firestore/doc)
-        jsdata (prepare-input docRef params)]
+        jsdata (db/prepare-input docRef params)]
     (-> (firestore/setDoc docRef jsdata)
         (.then (fn [^js _]
                  (when on-success
@@ -69,7 +55,7 @@
   (let [fdb (rf/subscribe [:firestore/db])
         params (oops/oset! params "!updated_at" (firestore/serverTimestamp))]
     (-> (firestore/doc @fdb "projects" project-id)
-        (firestore/updateDoc (-> params update-timestamp))
+        (firestore/updateDoc (-> params db/update-timestamp))
         (.then (fn [^js docRef]
                  (reset! doc docRef)
                  (when on-success
@@ -91,8 +77,7 @@
  :projects/load-success
  base-interceptors
  (fn [{:keys [db]} [projects]]
-   {:db (assoc db :projects/all
-               (map project->in projects))}))
+   {:db (assoc db :projects/all (map project->in projects))}))
 
 
 (rf/reg-event-fx

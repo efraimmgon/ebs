@@ -4,24 +4,23 @@
    [re-frame.core :as rf]
    ["firebase/firestore" :as firestore]))
 
-(defn create
-  [{:keys [collection params]}]
-  (let [fdb (rf/subscribe [:firestore/db])
-        docRef (firestore/addDoc
-                (firestore/collection
-                 @fdb collection)
-                (clj->js params))]
-    (oops/oget docRef "id")))
+(defn now []
+  (firestore/serverTimestamp))
 
+(defn add-id [docRef params]
+  (oops/oset! params "!id" (oops/oget docRef "id")))
 
-(defn get-by-id
-  [{:keys [collection id]}]
-  (let [fdb (rf/subscribe [:firestore/db])]
-    (firestore/getDoc
-     (firestore/doc
-      (str collection "/" id)))))
+(defn add-timestamps [params]
+  (let [now (now)]
+    (oops/oset! params "!created_at" now)
+    (oops/oset! params "!updated_at" now)))
 
+(defn update-timestamp [params]
+  (oops/oset! params "!updated_at" (now)))
 
+(defn prepare-input [docRef params]
+  (-> (add-id docRef params)
+      add-timestamps))
 
 (comment
   (def fdb (rf/subscribe [:firestore/db]))
