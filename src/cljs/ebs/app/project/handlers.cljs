@@ -20,6 +20,12 @@
   (-> (add-id docRef params)
       add-timestamps))
 
+(defn project->in [project]
+  (-> project
+      js->edn
+      (assoc "created_at" (oops/oget project "!created_at"))
+      (assoc "updated_at" (oops/oget project "!updated_at"))))
+
 ;;; ---------------------------------------------------------------------------
 ;;; DB
 
@@ -85,7 +91,8 @@
  :projects/load-success
  base-interceptors
  (fn [{:keys [db]} [projects]]
-   {:db (assoc db :projects/all (js->edn projects))}))
+   {:db (assoc db :projects/all
+               (map project->in projects))}))
 
 
 (rf/reg-event-fx
@@ -147,7 +154,7 @@
  :project/load-project-success
  base-interceptors
  (fn [{:keys [db]} [project]]
-   {:db (assoc db :project/active (js->edn project))}))
+   {:db (assoc db :project/active (project->in project))}))
 
 
 (rf/reg-event-fx
