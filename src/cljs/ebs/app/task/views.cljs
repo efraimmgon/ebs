@@ -2,7 +2,6 @@
   (:require
    [reagent.core :as r]
    [re-frame.core :as rf]
-   [ebs.utils.forms :as forms]
    [ebs.utils.input :as input]
    ebs.app.task.handlers
    [ebs.utils.datetime :as datetime]
@@ -130,11 +129,9 @@
 
 (defn task-item
   [{:keys [id] :as task}]
-  (r/with-let [path [:tasks/tree id]]
-
-    (if (temporary-id? id)
-      [create-task-ui task]
-      [update-task-ui task])))
+  (if (temporary-id? id)
+    [create-task-ui task]
+    [update-task-ui task]))
 
 (defn tasks-ui
   "Component to display a list of tasks."
