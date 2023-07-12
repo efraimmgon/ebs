@@ -105,3 +105,28 @@
     (-> docRef
         (firestore/setDoc (clj->js params))
         (.then #(on-success params)))))
+
+
+(defn get-story-by-id
+  [{:keys [project-id story-id on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])]
+    (-> (firestore/doc @fdb "projects" project-id "stories" story-id)
+        firestore/getDoc
+        (.then (fn [^js docSnapshot]
+                 (let [data (oops/ocall docSnapshot "data")]
+                   (on-success data)))))))
+
+
+;;; ---------------------------------------------------------------------------
+;;; Tasks
+
+(defn get-tasks-by-story
+  [{:keys [project-id story-id on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])]
+    (-> (firestore/collection @fdb "projects" project-id "stories" story-id "tasks")
+        firestore/getDocs
+        (.then (fn [^js querySnapshot]
+                 (-> (oops/oget querySnapshot "docs")
+                     (.map (fn [doc]
+                             (oops/ocall doc "data")))
+                     on-success))))))

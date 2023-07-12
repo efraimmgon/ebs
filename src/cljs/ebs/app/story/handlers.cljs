@@ -16,7 +16,6 @@
       (:labels story) (update :labels set)))) ; (1)
 
 
-
 ;;; ---------------------------------------------------------------------------
 ;;; Events
 
@@ -48,12 +47,11 @@
  :story/load
  events/base-interceptors
  (fn [_ [project-id story-id]]
-   {:http-xhrio {:method :get
-                 :uri (str "/api/projects/" project-id "/stories/" story-id)
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:story/load-success]
-                 :on-failure [:common/set-error]}}))
+   (db/get-story-by-id
+    {:project-id project-id
+     :story-id story-id
+     :on-success #(rf/dispatch [:story/load-success %])})
+   nil))
 
 
 (rf/reg-event-fx

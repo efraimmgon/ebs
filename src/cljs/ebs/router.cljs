@@ -63,14 +63,14 @@
         {:parameters {:path {:story-id string?}}
          :controllers [{:parameters {:path [:project-id :story-id]}
                         :start (fn [path]
-                                 (rf/dispatch
-                                  [:story/load
-                                   (get-in path [:path :project-id])
-                                   (get-in path [:path :story-id])])
-                                 (rf/dispatch
-                                  [:story/load-tasks
-                                   (get-in path [:path :project-id])
-                                   (get-in path [:path :story-id])]))}]}
+                                 (let [project-id (get-in path [:path :project-id])
+                                       story-id (get-in path [:path :story-id])]
+                                   (rf/dispatch
+                                    [:story/load project-id story-id])
+                                   (rf/dispatch
+                                    [:story/load-tasks project-id story-id])))}]}
+
+
 
         ["/edit"
          {:name :story/edit

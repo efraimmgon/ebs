@@ -2,6 +2,7 @@
   (:require
    clojure.string
    [ajax.core :as ajax]
+   [ebs.utils.db :as db]
    [ebs.utils.events :as events]
    [re-frame.core :as rf]))
 
@@ -33,19 +34,18 @@
    (let [tasks-map (reduce (fn [acc task]
                              (assoc acc (:id task) task))
                            {}
-                           tasks)]
+                           (clj->js tasks :keywordize-keys true))]
      {:db (assoc db :tasks/tree tasks-map)})))
 
 (rf/reg-event-fx
  :story/load-tasks
  events/base-interceptors
  (fn [_ [project-id story-id]]
-   {:http-xhrio {:method :get
-                 :uri (str "/api/projects/" project-id "/stories/" story-id "/tasks")
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:story/load-tasks-success]
-                 :on-failure [:common/set-error]}}))
+   (db/get-tasks-by-story
+    {:project-id project-id
+     :story-id story-id
+     :on-success #(rf/dispatch [:story/load-tasks-success %])})
+   nil))
 
 (rf/reg-event-fx
  :task/add-item

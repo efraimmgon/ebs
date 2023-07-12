@@ -10,10 +10,10 @@
    [ebs.utils.components :as c]
    [ebs.utils.datetime :as datetime]
    [ebs.utils.input :as input]
-   [ebs.utils.forms :as forms]
    [ebs.utils.views :as views]
    [reitit.frontend.easy :as rfe]
    ebs.app.story.handlers))
+
 
 ; TODO: move this to a sub
 (def label->class
@@ -21,12 +21,15 @@
    "feature" "badge-success"
    "chore" "badge-info"})
 
+
 (defn story-list-item
   "Component to display a story."
   [{:keys [id project_id title priority labels due_date]}]
 
+  ;;; Edit story link
   [:a.no-link-style
    {:href (rfe/href :story/edit {:project-id project_id :story-id id})}
+
    [:li.list-group-item
     [:p
      (when priority
@@ -42,7 +45,8 @@
     (when (and due_date (not (clojure.string/blank? due_date)))
       [:div
        [:small.text-muted
-        (datetime/datetime-ui due_date)]])]])
+        (datetime/firestore->datetime-input-fmt due_date)]])]])
+
 
 (defn extra-options
   "Component to display extra options for the stories"
@@ -114,6 +118,8 @@
                                    @statuses)]
     [views/base-ui
      [:div
+
+      ;;; Project title + buttons
       [:h1 (:title @project)
        [extra-options project]]]
 
@@ -123,10 +129,12 @@
                                stories+titles
                                (drop-last stories+titles))]
          ^{:key title}
+         ;;; Show/hide completed stories in UI
          [:div {:class (if @show-complete?
                          "col-md-4"
                          "col-md-6")}
 
+          ;;; Status title + add new button
           [:h3 (clojure.string/capitalize title)
            [:button.btn.btn-light.float-right
             {:on-click
@@ -134,6 +142,8 @@
                                             {:status title
                                              :project_id (:id @project)})])}
             "Add New"]]
+
+          ;;; Stories
           (if (empty? @stories)
             [:p "-"]
             [:ul.list-group
@@ -144,7 +154,7 @@
 
 (defn story-ui
   "Component to display the story form."
-  [{:keys [title footer path story]}]
+  [{:keys [title footer story]}]
   (r/with-let [view-mode? (r/atom true)]
     [views/base-ui
      [c/card
@@ -153,117 +163,146 @@
        :body
        [:div.row
 
-      ;; Left column
+        ;;; Left column
         [:div.col-md-9
+
+         ;; Description
          [c/form-group
           [:span "Description "
            [:button.btn.btn-primary.btn-sm
             {:on-click #(swap! view-mode? not)}
             (if @view-mode? "Edit" "View")]]
+
           (if @view-mode?
+            ;; View mode
             [:div
              (if (clojure.string/blank? (:description @story))
                "Add a more detailed description..."
                {:dangerouslySetInnerHTML
                 {:__html (md/md->html (:description @story))}})]
-            [forms/textarea
-             {:name (conj path :description)
-              :placeholder "Description"
+
+            ;; Edit mode
+            [input/textarea
+             {:name :description
+              :doc story
               :class "form-control"
               :rows 10}])]
 
          [:hr]
 
+         [c/pretty-display @story]
+
+         ;; Tasks
          [task/tasks-ui]]
 
-      ;; Right column
+        ;;; Right column
         [:div.col-md-3
+
+         ;; Status
          [c/form-group
           "Status"
-          [forms/select
-           {:name (conj path :status)
+          [input/select
+           {:name :status
             :default-value "pending"
+            :doc story
             :class "form-control"}
            (doall
             (for [status @(rf/subscribe [:statuses/all])]
               ^{:key status}
               [:option {:value status} (clojure.string/capitalize status)]))]]
+
+         ;; Priority
          [c/form-group
           "Priority"
-          [forms/select
-           {:name (conj path :priority)
+          [input/select
+           {:name :priority
+            :doc story
             :class "form-control"
-            :save-fn #(js/parseInt %)}
-           (doall
-            (into [[:option {:value ""} ""]]
-                  (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
-                    ^{:key id}
-                    [:option {:value id} name])))]]
+            :save-fn #(when (and % (not (clojure.string/blank? %)))
+                        (js/parseInt %))}
+           (into [[:option {:value ""} ""]]
+                 (for [{:keys [id name]} @(rf/subscribe [:priorities/all])]
+                   ^{:key id}
+                   [:option {:value id} name]))]]
+
+         ;; Due date
          [c/form-group
           "Due date"
-          [forms/datetime-input
-           {:name (conj path :due_date)
+          [input/datetime-input
+           {:name :due_date
+            :doc story
+            :save-fn datetime/string->firestore-timestamp
+            :display-fn datetime/firestore->datetime-input-fmt
             :class "form-control"}]]
+
+         ;; Labels
          [c/form-group
           "Labels"
           (doall
            (for [label @(rf/subscribe [:labels/all])]
              ^{:key label}
-             [forms/checkbox-comp
-              {:name (conj path :labels)
+             [input/checkbox-comp
+              {:name :labels
+               :doc story
                :label (clojure.string/capitalize label)
                :value label}]))]
+
+         ;; Created at (read only)
          [c/form-group
           "Created at"
           [:input.form-control
            {:type :datetime-local
             :value (if-let [created-at (:created_at @story)]
-                     (datetime/to-datetime-local-string created-at)
+                     (datetime/firestore->datetime-input-fmt created-at)
                      "")
             :disabled true}]]
+
+         ;; Updated at (read only)
          [c/form-group
           "Updated at"
           [:input.form-control
            {:type :datetime-local
             :value (if-let [updated-at (:updated_at @story)]
-                     (datetime/to-datetime-local-string updated-at)
+                     (datetime/firestore->datetime-input-fmt updated-at)
                      "")
             :disabled true}]]]]
 
 
        :footer footer}]]))
 
+
 (defn edit-story-ui
   "Component to edit a story."
   []
-  (r/with-let [path [:story/active]
-               story (rf/subscribe path)]
-    [story-ui
-     {:title
-      [:div.row
-       [:div.col-md-11
-        [c/toggle-comp
-         (:title @story)
-         [forms/input
-          {:type :text
-           :name (conj path :title)
-           :placehodler "Title"
-           :class "form-control"}]]]
-       [:div.col-md-1
-        [:span.float-right
-         [:button.btn.btn-danger
-          {:on-click #(rf/dispatch [:story/delete! (:project_id @story) (:id @story)])}
-          "Delete"]]]]
+  (let [story-params (rf/subscribe [:story/active])]
+    (when @story-params
+      (let [story (r/atom @story-params)]
+        (fn []
 
-      :path path
+          [story-ui
+           {:story story
 
-      :story story
+            :title
+            [:div.row
+             [:div.col-md-11
+              [c/toggle-comp
+               (:title @story)
+               [input/text-input
+                {:name :title
+                 :doc story
+                 :placehodler "Title"
+                 :class "form-control"}]]]
+             [:div.col-md-1
+              [:span.float-right
+               [:button.btn.btn-danger
+                {:on-click #(rf/dispatch [:story/delete! (:project_id @story) (:id @story)])}
+                "Delete"]]]]
 
-      :footer
-      [:div
-       [:button.btn.btn-primary
-        {:on-click #(rf/dispatch [:story/update! @story])}
-        "Update"]
-       [:a.btn.btn-secondary.ml-2
-        {:href (rfe/href :project/view-stories {:project-id (:project_id @story)})}
-        "Cancel"]]}]))
+            :footer
+            [:div
+             [:button.btn.btn-primary
+              {:on-click #(rf/dispatch [:story/update! @story])}
+              "Update"]
+             [:a.btn.btn-secondary.ml-2
+              {:href (rfe/href :project/view-stories {:project-id (:project_id @story)})}
+              "Cancel"]]}])))))

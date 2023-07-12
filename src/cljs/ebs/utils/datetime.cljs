@@ -3,7 +3,9 @@
    clojure.string
    [cljs-time.core :as time]
    [cljs-time.format :as tf]
-   [oops.core :as oops]))
+   [oops.core :as oops]
+   ["firebase/firestore" :as firestore]))
+
 
 (def iso-zoned-date (tf/formatter "yyyy-MM-dd'T'HH:mm:ss.SSSZ"))
 
@@ -18,8 +20,12 @@
   (->> string
        (tf/parse-local datetime-local)))
 
-(defn to-user-friendly-datetime [firestore-timestamp]
-  (-> firestore-timestamp (oops/ocall "toDate") .toISOString))
+
+(defn string->firestore-timestamp
+  [string]
+  (let [d (js/Date. string)]
+    (firestore/Timestamp.fromDate d)))
+
 
 (defn datetime-out
   "Converts a goog.date.DateTime obj to a format that can be parsed by 
