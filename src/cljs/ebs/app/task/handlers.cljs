@@ -80,15 +80,16 @@
 (rf/reg-event-fx
  :task/create!
  events/base-interceptors
- (fn [_ [{:keys [id original_estimate current_estimate] :as task}]]
-   (let [project-id (:id @(rf/subscribe [:project/active]))
-         new-task (dissoc task :id)
+ (fn [_ [task]]
+   (let [{:keys [id story_id original_estimate current_estimate]} @task
+         project-id (:id @(rf/subscribe [:project/active]))
+         new-task (dissoc @task :id)
          new-task (if (and current_estimate (not original_estimate))
                     (assoc new-task :original_estimate current_estimate)
                     new-task)]
      (db/create-task!
       {:project-id project-id
-       :story-id (:story_id task)
+       :story-id story_id
        :params new-task
        :on-success #(rf/dispatch [:task/create-success id %])})
      nil)))

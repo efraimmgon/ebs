@@ -3,6 +3,11 @@
    [ebs.utils.datetime :as datetime]))
 
 
+;;; ---------------------------------------------------------------------------
+;;; Utilities
+;;; ---------------------------------------------------------------------------
+
+
 (defn clean-attrs [attrs]
   (dissoc attrs
           :doc
@@ -10,20 +15,56 @@
           :save-fn
           :display-fn))
 
+; NOTE: Reason for `""`: 
+; https://zhenyong.github.io/react/tips/controlled-input-null-value.html
+(defn value-attr [value]
+  (or value ""))
+
+
+(defn target-value [event]
+  (-> event
+      .-target
+      .-value))
+
+
+(defn parse-number [string]
+  (when-not (empty? string)
+    (let [parsed (js/parseFloat string)]
+      (when-not (js/isNaN parsed)
+        parsed))))
+
+
+;;; ---------------------------------------------------------------------------
+;;; Core components
+;;; ---------------------------------------------------------------------------
+
 
 (defn text-input
   [{:keys [doc name] :as attrs}]
   (let [edited-attrs
-        (merge {:on-change (fn [event]
-                             (let [value (-> event .-target .-value)]
-                               (swap! doc assoc name value)))}
+        (merge {:on-change #(swap! doc assoc name (target-value %))}
                (-> attrs
                    clean-attrs))]
     (fn []
       [:input
        (assoc edited-attrs
-              :value (or (get @doc name) "")
+              :value (value-attr (get @doc name))
               :type :text)])))
+
+
+(defn number-input
+  [{:keys [doc name] :as attrs}]
+  (let [edited-attrs
+        (merge {:on-change (fn [event]
+                             (let [value (-> event .-target .-value)]
+                               (swap! doc assoc name (parse-number value))))}
+               (-> attrs
+                   clean-attrs))]
+    (fn []
+      [:input
+       (assoc edited-attrs
+              :value (value-attr (get @doc name))
+              :type :number)])))
 
 
 (defn textarea
@@ -37,26 +78,7 @@
     (fn []
       [:textarea
        (assoc edited-attrs
-              :value (or (get @doc name) ""))])))
-
-
-(defn select
-  [{:keys [doc name default-value save-fn] :as attrs}
-   options]
-  (let [save-fn (or save-fn identity)
-        edited-attrs
-        (merge {:on-change (fn [event]
-                             (let [value (-> event .-target .-value)]
-                               (swap! doc assoc name (save-fn value))))}
-               (-> attrs
-                   clean-attrs))]
-    (when (and default-value (nil? (get @doc name)))
-      (swap! doc assoc name default-value))
-    (fn []
-      (into [:select
-             (assoc edited-attrs
-                    :value (or (get @doc name) ""))]
-            options))))
+              :value (value-attr (get @doc name)))])))
 
 
 (defn datetime-input
@@ -77,8 +99,27 @@
     (fn []
       [:input
        (assoc edited-attrs
-              :value (or (display-fn (get @doc name)) "")
+              :value (value-attr (display-fn (get @doc name)))
               :type :datetime-local)])))
+
+
+(defn select
+  [{:keys [doc name default-value save-fn] :as attrs}
+   options]
+  (let [save-fn (or save-fn identity)
+        edited-attrs
+        (merge {:on-change (fn [event]
+                             (let [value (-> event .-target .-value)]
+                               (swap! doc assoc name (save-fn value))))}
+               (-> attrs
+                   clean-attrs))]
+    (when (and default-value (nil? (get @doc name)))
+      (swap! doc assoc name default-value))
+    (fn []
+      (into [:select
+             (assoc edited-attrs
+                    :value (value-attr (get @doc name)))]
+            options))))
 
 
 (comment
