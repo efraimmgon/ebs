@@ -47,14 +47,14 @@
          :name :current_estimate
          :class "form-control"}]]
 
-      ;;; Original estimate (read-only)
+      ;;; Time elapsed (to keep spacing consistent)
       [:div.form-group.col-md-1
        [:input.form-control
         {:type "number"
          :disabled true
          :value ""}]]
 
-      ;;; Time elapsed (read-only)
+      ;;; Delete button (to keep spacing consistent)
       [:div.form-group.col-md-2
        ""]]
 
@@ -69,48 +69,51 @@
         "Cancel"]]]]))
 
 (defn handle-task-being-tracked?
+  "Returns true if the task has been set to 'complete' and is currently
+   being tracked by the timer."
   [task timer-settings]
   (and (= (:status task) "complete")
        (= (:id task) (get-in timer-settings [:task :id]))
        (= (:state timer-settings) :running)))
 
 (defn update-task-ui
-  [path]
-  (r/with-let [task (rf/subscribe [:query path])
-               tsettings (rf/subscribe [:timer/settings])]
+  [task-params]
+  (r/with-let [task (r/atom task-params)
+               timer-settings (rf/subscribe [:timer/settings])]
     [:div
      [:div.form-row
       [:div.form-group.col-md-1
        [:input.form-control.form-check-input
         {:type "checkbox"
          :checked (= (:status @task) "complete")
-         :on-change #(do (rf/dispatch-sync
-                          [:assoc-in (conj path :status)
-                           (if (= (:status @task) "complete")
-                             "pending"
-                             "complete")])
-                         (when (handle-task-being-tracked? @task @tsettings)
-                           (rf/dispatch
-                            [:timer/task-completed-being-tracked]))
-                         (rf/dispatch [:task/update! @task]))}]]
-      ;; title
+         :on-change (fn [_]
+                      (swap! task assoc :status
+                             (if (= (:status @task) "complete")
+                               "pending"
+                               "complete"))
+                      (when (handle-task-being-tracked? @task @timer-settings)
+                        (rf/dispatch
+                         [:timer/task-completed-being-tracked]))
+                      (rf/dispatch [:task/update! task]))}]]
+      ;;; Title
       [:div.form-group.col-md-7
-       [forms/textarea
-        {:name (conj path :title)
+       [input/textarea
+        {:doc task
+         :name :title
          :rows 1
          :class "form-control"
          :auto-focus (temporary-id? (:id @task))
-         :on-blur #(rf/dispatch [:task/update! @task])}]]
+         :on-blur #(rf/dispatch [:task/update! task])}]]
 
-      ;; current-estimate
+      ;;; Current estimate
       [:div.form-group.col-md-1
-       [forms/input
-        {:type :number
-         :name (conj path :current_estimate)
+       [input/number-input
+        {:doc task
+         :name :current_estimate
          :class "form-control"
-         :on-blur #(rf/dispatch [:task/update! @task])}]]
+         :on-blur #(rf/dispatch [:task/update! task])}]]
 
-      ;; time-elapsed
+      ;;; Time elapsed
       [:div.form-group.col-md-2
        (let [{:keys [hours minutes]} (-> @task :time-elapsed datetime/ms->hours-mins-sec)]
          [:div
@@ -119,6 +122,7 @@
                minutes
                "min")])]
 
+      ;;; Delete 
       [:div.form-group.col-md-1
        [:button.btn.btn-light
         {:on-click #(rf/dispatch [:task/delete! (:id @task)])}
@@ -130,7 +134,7 @@
 
     (if (temporary-id? id)
       [create-task-ui task]
-      [update-task-ui path])))
+      [update-task-ui task])))
 
 (defn tasks-ui
   "Component to display a list of tasks."

@@ -106,7 +106,8 @@
 (defn ms->hours-mins-sec
   "Returns a map with the hours, minutes and seconds of a number of milliseconds."
   [ms]
-  (let [s (quot ms 1000)
+  (let [ms (or ms 0)
+        s (quot ms 1000)
         m (quot s 60)
         h (quot m 60)]
     {:hours (mod h 24)

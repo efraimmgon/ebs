@@ -105,15 +105,16 @@
 (rf/reg-event-fx
  :task/update!
  events/base-interceptors
- (fn [_ [{:keys [id original_estimate current_estimate] :as task}]]
-   (let [keys_ [:id :story_id :title :status :current_estimate :original_estimate]
-         new-task (select-keys task keys_)
+ (fn [_ [task]]
+   (let [{:keys [id story_id original_estimate current_estimate]} @task
+         keys_ [:id :story_id :title :status :current_estimate :original_estimate]
+         new-task (select-keys @task keys_)
          new-task (if (and current_estimate (not original_estimate))
                     (assoc new-task :original_estimate current_estimate)
                     new-task)]
      (db/update-task!
       {:project-id (:id @(rf/subscribe [:project/active]))
-       :story-id (:story_id task)
+       :story-id story_id
        :task-id id
        :params new-task
        :on-success #(rf/dispatch [:task/update-success %])})
