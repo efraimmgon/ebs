@@ -42,7 +42,7 @@
  base-interceptors
  (fn [_ [project]]
    (let [current-user (rf/subscribe [:identity])]
-     (db/create-project
+     (db/create-project!
       {:params (-> @project
                    (select-keys [:title :description])
                    (assoc :user_id (oops/oget @current-user "uid")))
@@ -62,7 +62,7 @@
  :project/update!
  base-interceptors
  (fn [_ [project]]
-   (db/update-project
+   (db/update-project!
     {:project-id (:id @project)
      :params (-> @project
                  (select-keys [:title :description]))
@@ -99,7 +99,7 @@
  :project/delete!
  base-interceptors
  (fn [_ [project-id]]
-   (db/delete-project
+   (db/delete-project!
     {:project-id project-id
      :on-success #(rf/dispatch [:project/delete-success %])})
    nil))

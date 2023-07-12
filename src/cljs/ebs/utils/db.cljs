@@ -59,7 +59,7 @@
                    (on-success data)))))))
 
 
-(defn create-project [{:keys [params on-success]}]
+(defn create-project! [{:keys [params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
         docRef (-> (firestore/collection @fdb "projects") firestore/doc)
         params (prepare-input docRef params)]
@@ -67,7 +67,7 @@
         (.then #(on-success params)))))
 
 
-(defn update-project [{:keys [project-id params on-success]}]
+(defn update-project! [{:keys [project-id params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
         params (update-timestamp params)]
     (-> (firestore/doc @fdb "projects" project-id)
@@ -75,7 +75,7 @@
         (.then #(on-success params)))))
 
 
-(defn delete-project [{:keys [project-id on-success]}]
+(defn delete-project! [{:keys [project-id on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])]
     (-> (firestore/doc @fdb "projects" project-id)
         firestore/deleteDoc
@@ -96,7 +96,7 @@
                              (oops/ocall doc "data")))
                      on-success))))))
 
-(defn create-story
+(defn create-story!
   [{:keys [params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
         docRef (-> (firestore/collection @fdb "projects" (:project_id params) "stories")
@@ -117,7 +117,7 @@
                    (on-success data)))))))
 
 
-(defn update-story
+(defn update-story!
   [{:keys [project-id story-id params on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])
         params (update-timestamp params)]
@@ -126,7 +126,7 @@
         (.then #(on-success params)))))
 
 
-(defn delete-story
+(defn delete-story!
   [{:keys [project-id story-id on-success]}]
   (let [fdb (rf/subscribe [:firestore/db])]
     (-> (firestore/doc @fdb "projects" project-id "stories" story-id)
@@ -147,3 +147,30 @@
                      (.map (fn [doc]
                              (oops/ocall doc "data")))
                      on-success))))))
+
+(defn create-task!
+  [{:keys [project-id story-id params on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])
+        docRef (-> (firestore/collection @fdb "projects" project-id "stories" story-id "tasks")
+                   firestore/doc)
+        params (prepare-input docRef params)]
+    (-> docRef
+        (firestore/setDoc (clj->js params))
+        (.then #(on-success params)))))
+
+
+(defn update-task!
+  [{:keys [project-id story-id task-id params on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])
+        params (update-timestamp params)]
+    (-> (firestore/doc @fdb "projects" project-id "stories" story-id "tasks" task-id)
+        (firestore/updateDoc (clj->js params))
+        (.then #(on-success params)))))
+
+
+(defn delete-task!
+  [{:keys [project-id story-id task-id on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])]
+    (-> (firestore/doc @fdb "projects" project-id "stories" story-id "tasks" task-id)
+        firestore/deleteDoc
+        (.then #(on-success task-id)))))

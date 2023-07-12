@@ -11,6 +11,7 @@
   [id]
   (contains? @(rf/subscribe [:task/temporary]) id))
 
+
 (defn remove-temporary-task
   "Removes a temporary task from the db."
   [db id]
@@ -18,14 +19,17 @@
       (update :task/temporary disj id)
       (update :tasks/tree dissoc id)))
 
+
 (defn remove-task
   "Removes a task from the db."
   [db id]
   (-> db
       (update :tasks/tree dissoc id)))
 
+
 ;;; ---------------------------------------------------------------------------
 ;;; Handlers
+
 
 (rf/reg-event-fx
  :story/load-tasks-success
@@ -34,8 +38,9 @@
    (let [tasks-map (reduce (fn [acc task]
                              (assoc acc (:id task) task))
                            {}
-                           (clj->js tasks :keywordize-keys true))]
+                           (js->clj tasks :keywordize-keys true))]
      {:db (assoc db :tasks/tree tasks-map)})))
+
 
 (rf/reg-event-fx
  :story/load-tasks
@@ -46,6 +51,7 @@
      :story-id story-id
      :on-success #(rf/dispatch [:story/load-tasks-success %])})
    nil))
+
 
 (rf/reg-event-fx
  :task/add-item
@@ -60,6 +66,7 @@
                          :title ""})
               (update :task/temporary (fnil conj #{}) id))})))
 
+
 (rf/reg-event-fx
  :task/create-success
  events/base-interceptors
@@ -69,21 +76,23 @@
             (assoc-in [:tasks/tree (:id task)]
                       task))}))
 
+
 (rf/reg-event-fx
  :task/create!
  events/base-interceptors
  (fn [_ [{:keys [id original_estimate current_estimate] :as task}]]
-   (let [new-task (dissoc task :id)
+   (let [project-id (:id @(rf/subscribe [:project/active]))
+         new-task (dissoc task :id)
          new-task (if (and current_estimate (not original_estimate))
                     (assoc new-task :original_estimate current_estimate)
                     new-task)]
-     {:http-xhrio {:method :post
-                   :uri "/api/tasks"
-                   :format (ajax/json-request-format)
-                   :response-format (ajax/json-response-format {:keywords? true})
-                   :params new-task
-                   :on-success [:task/create-success id]
-                   :on-failure [:common/set-error]}})))
+     (db/create-task!
+      {:project-id project-id
+       :story-id (:story_id task)
+       :params new-task
+       :on-success #(rf/dispatch [:task/create-success id %])})
+     nil)))
+
 
 (rf/reg-event-fx
  :task/update-success
@@ -91,28 +100,31 @@
  (fn [{:keys [db]} [task]]
    {:db (assoc-in db [:tasks/tree (:id task)] task)}))
 
+
 (rf/reg-event-fx
  :task/update!
  events/base-interceptors
  (fn [_ [{:keys [id original_estimate current_estimate] :as task}]]
-   (let [ks [:id :story_id :title :status :current_estimate :original_estimate]
-         new-task (select-keys task ks)
+   (let [keys_ [:id :story_id :title :status :current_estimate :original_estimate]
+         new-task (select-keys task keys_)
          new-task (if (and current_estimate (not original_estimate))
                     (assoc new-task :original_estimate current_estimate)
                     new-task)]
-     {:http-xhrio {:method :put
-                   :uri (str "/api/tasks/" id)
-                   :format (ajax/json-request-format)
-                   :response-format (ajax/json-response-format {:keywords? true})
-                   :params new-task
-                   :on-success [:task/update-success]
-                   :on-failure [:common/set-error]}})))
+     (db/update-task!
+      {:project-id (:id @(rf/subscribe [:project/active]))
+       :story-id (:story_id task)
+       :task-id id
+       :params new-task
+       :on-success #(rf/dispatch [:task/update-success %])})
+     nil)))
+
 
 (rf/reg-event-fx
  :task/delete-success
  events/base-interceptors
  (fn [_ _]
    nil))
+
 
 (rf/reg-event-fx
  :task/delete!
@@ -121,15 +133,14 @@
    (let [new-db (if (temporary-id? task-id)
                   (remove-temporary-task db task-id)
                   (remove-task db task-id))]
-     (if (temporary-id? task-id)
-       {:db new-db}
-       {:http-xhrio {:method :delete
-                     :uri (str "/api/tasks/" task-id)
-                     :format (ajax/json-request-format)
-                     :response-format (ajax/json-response-format {:keywords? true})
-                     :on-success [:task/delete-success task-id]
-                     :on-failure [:common/set-error]}
-        :db new-db}))))
+     (when-not (temporary-id? task-id)
+       (db/delete-task!
+        {:project-id (:id @(rf/subscribe [:project/active]))
+         :story-id (:story_id (get-in db [:tasks/tree task-id]))
+         :task-id task-id
+         :on-success #(rf/dispatch [:task/delete-success %])}))
+     {:db new-db})))
+
 
 ;;; ---------------------------------------------------------------------------
 ;;; Subscriptions
@@ -142,8 +153,8 @@
  :<- [:tasks/tree]
  (fn [tasks-map]
    (->> tasks-map
-        vals
-        (sort-by :id))))
+        vals)))
+        ;(sort-by :id))))
 
 (rf/reg-sub
  :tasks/pending

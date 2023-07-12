@@ -66,7 +66,7 @@
  :story/create!
  events/base-interceptors
  (fn [_ [story]]
-   (db/create-story
+   (db/create-story!
     {:params @story
      :on-success #(rf/dispatch [:story/create-success %])})
    nil))
@@ -85,7 +85,7 @@
  :story/update!
  events/base-interceptors
  (fn [_ [story]]
-   (db/update-story
+   (db/update-story!
     {:story-id (:id @story)
      :project-id (:project_id @story)
      :params @story
@@ -106,7 +106,7 @@
  :story/delete!
  events/base-interceptors
  (fn [_ [project-id story-id]]
-   (db/delete-story
+   (db/delete-story!
     {:project-id project-id
      :story-id story-id
      :on-success #(rf/dispatch [:story/delete-success project-id])})
