@@ -80,40 +80,37 @@
                {:project-id (:project_id story)}]
     :db (dissoc db :story/active)}))
 
+
 (rf/reg-event-fx
  :story/update!
  events/base-interceptors
- (fn [{:keys [db]} [story]]
-   (let [project-id (get-in db [:project/active :id])
-         story-id (get-in db [:story/active :id])]
-     {:http-xhrio {:method :put
-                   :uri (str "/api/projects/" project-id "/stories/" story-id)
-                   :format (ajax/json-request-format)
-                   :response-format (ajax/json-response-format {:keywords? true})
-                   :params (-> story
-                               ;story->out
-                               (assoc :project_id project-id))
-                   :on-success [:story/update-success]
-                   :on-failure [:common/set-error]}})))
+ (fn [_ [story]]
+   (db/update-story
+    {:story-id (:id @story)
+     :project-id (:project_id @story)
+     :params @story
+     :on-success #(rf/dispatch [:story/update-success %])})
+   nil))
+
 
 (rf/reg-event-fx
  :story/delete-success
  events/base-interceptors
- (fn [{:keys [db]} _]
+ (fn [{:keys [db]} [project-id]]
    {:dispatch [:navigate! :project/view-stories
-               {:project-id (get-in db [:project/active :id])}]
+               {:project-id project-id}]
     :db (dissoc db :story/active)}))
+
 
 (rf/reg-event-fx
  :story/delete!
  events/base-interceptors
  (fn [_ [project-id story-id]]
-   {:http-xhrio {:method :delete
-                 :uri (str "/api/projects/" project-id "/stories/" story-id)
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:story/delete-success]
-                 :on-failure [:common/set-error]}}))
+   (db/delete-story
+    {:project-id project-id
+     :story-id story-id
+     :on-success #(rf/dispatch [:story/delete-success project-id])})
+   nil))
 
 
 ;;; ---------------------------------------------------------------------------

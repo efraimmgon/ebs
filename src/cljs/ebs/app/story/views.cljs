@@ -190,8 +190,6 @@
 
          [:hr]
 
-         [c/pretty-display @story]
-
          ;; Tasks
          [task/tasks-ui]]
 
@@ -301,7 +299,7 @@
             :footer
             [:div
              [:button.btn.btn-primary
-              {:on-click #(rf/dispatch [:story/update! @story])}
+              {:on-click #(rf/dispatch [:story/update! story])}
               "Update"]
              [:a.btn.btn-secondary.ml-2
               {:href (rfe/href :project/view-stories {:project-id (:project_id @story)})}

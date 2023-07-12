@@ -117,6 +117,23 @@
                    (on-success data)))))))
 
 
+(defn update-story
+  [{:keys [project-id story-id params on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])
+        params (update-timestamp params)]
+    (-> (firestore/doc @fdb "projects" project-id "stories" story-id)
+        (firestore/updateDoc (clj->js params))
+        (.then #(on-success params)))))
+
+
+(defn delete-story
+  [{:keys [project-id story-id on-success]}]
+  (let [fdb (rf/subscribe [:firestore/db])]
+    (-> (firestore/doc @fdb "projects" project-id "stories" story-id)
+        firestore/deleteDoc
+        (.then #(on-success story-id)))))
+
+
 ;;; ---------------------------------------------------------------------------
 ;;; Tasks
 
