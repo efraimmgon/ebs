@@ -23,7 +23,9 @@
  :stories/load-success
  events/base-interceptors
  (fn [{:keys [db]} [stories]]
-   {:db (assoc db :stories/all (map story->in stories))}))
+   {:db (assoc db :stories/all (->> stories
+                                    (map story->in)
+                                    (sort-by :priority)))}))
 
 
 (rf/reg-event-fx
