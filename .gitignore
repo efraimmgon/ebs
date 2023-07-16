@@ -1,4 +1,6 @@
 /target
+/resources/public/js/out
+/resources/public/js/app.js
 /lib
 /classes
 /checkouts
@@ -17,5 +19,3 @@ profiles.clj
 /.shadow-cljs
 /node_modules
 /log
-
-
