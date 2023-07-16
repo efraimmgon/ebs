@@ -272,35 +272,34 @@
 (defn edit-story-ui
   "Component to edit a story."
   []
-  (let [story-params (rf/subscribe [:story/active])]
+  (r/with-let [story-params (rf/subscribe [:story/active])]
     (when @story-params
       (let [story (r/atom @story-params)]
-        (fn []
+        [story-ui
+         {:story story
 
-          [story-ui
-           {:story story
+          :title
+          [:div.row
+           [:div.col-md-11
+            [c/toggle-comp
+             (:title @story)
+             [input/text-input
+              {:name :title
+               :doc story
+               :placehodler "Title"
+               :class "form-control"}]]]
+           [:div.col-md-1
+            [:span.float-right
+             [:button.btn.btn-danger
+              {:on-click #(rf/dispatch [:story/delete! (:project_id @story) (:id @story)])}
+              "Delete"]]]]
 
-            :title
-            [:div.row
-             [:div.col-md-11
-              [c/toggle-comp
-               (:title @story)
-               [input/text-input
-                {:name :title
-                 :doc story
-                 :placehodler "Title"
-                 :class "form-control"}]]]
-             [:div.col-md-1
-              [:span.float-right
-               [:button.btn.btn-danger
-                {:on-click #(rf/dispatch [:story/delete! (:project_id @story) (:id @story)])}
-                "Delete"]]]]
-
-            :footer
-            [:div
-             [:button.btn.btn-primary
-              {:on-click #(rf/dispatch [:story/update! story])}
-              "Update"]
-             [:a.btn.btn-secondary.ml-2
-              {:href (rfe/href :project/view-stories {:project-id (:project_id @story)})}
-              "Cancel"]]}])))))
+          :footer
+          [:div
+           [:button.btn.btn-primary
+            {:on-click #(rf/dispatch [:story/update! story])}
+            "Update"]
+           [:a.btn.btn-secondary.ml-2
+            {:href (rfe/href :project/view-stories {:project-id (:project_id @story)})}
+            "Cancel"]]}]))))
+      
