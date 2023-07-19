@@ -22,3 +22,7 @@ profiles.clj
 
 # Firebase credentials
 /src/cljs/ebs/firebase.cljs
+
+#Other
+/.firebase/
+.DS_Store
