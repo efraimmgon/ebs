@@ -40,8 +40,6 @@
       {:parameters {:path {:project-id string?}}
        :controllers [{:parameters {:path [:project-id]}
                       :start (fn [path]
-                               (rf/dispatch-sync
-                                [:assoc-in [:project/active] nil])
                                (rf/dispatch
                                 [:project/load-project
                                  (get-in path [:path :project-id])]))}]}
@@ -67,8 +65,6 @@
                         :start (fn [path]
                                  (let [project-id (get-in path [:path :project-id])
                                        story-id (get-in path [:path :story-id])]
-                                   (rf/dispatch-sync
-                                    [:assoc-in [:story/active] nil])
                                    (rf/dispatch
                                     [:story/load project-id story-id])
                                    (rf/dispatch

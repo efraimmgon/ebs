@@ -174,7 +174,7 @@
             (if @view-mode? "Edit" "View")]]
 
           (if @view-mode?
-            ;; View mode
+            ;; Description view mode
             [:div
              (if (clojure.string/blank? (:description @story))
                "Add a more detailed description..."
@@ -268,13 +268,12 @@
 
        :footer footer}]]))
 
-
 (defn edit-story-ui
   "Component to edit a story."
   []
-  (r/with-let [story-params (rf/subscribe [:story/active])]
-    (when @story-params
-      (let [story (r/atom @story-params)]
+  (let [story (r/atom @(rf/subscribe [:story/active]))]
+    (when @story
+      (fn []
         [story-ui
          {:story story
 
@@ -302,4 +301,38 @@
            [:a.btn.btn-secondary.ml-2
             {:href (rfe/href :project/view-stories {:project-id (:project_id @story)})}
             "Cancel"]]}]))))
+
+#_(defn edit-story-ui
+    "Component to edit a story."
+    []
+    (r/with-let [story-params (rf/subscribe [:story/active])]
+      (when @story-params
+        (let [story (r/atom @story-params)]
+          [story-ui
+           {:story story
+
+            :title
+            [:div.row
+             [:div.col-md-11
+              [c/toggle-comp
+               (:title @story)
+               [input/text-input
+                {:name :title
+                 :doc story
+                 :placehodler "Title"
+                 :class "form-control"}]]]
+             [:div.col-md-1
+              [:span.float-right
+               [:button.btn.btn-danger
+                {:on-click #(rf/dispatch [:story/delete! (:project_id @story) (:id @story)])}
+                "Delete"]]]]
+
+            :footer
+            [:div
+             [:button.btn.btn-primary
+              {:on-click #(rf/dispatch [:story/update! story])}
+              "Update"]
+             [:a.btn.btn-secondary.ml-2
+              {:href (rfe/href :project/view-stories {:project-id (:project_id @story)})}
+              "Cancel"]]}]))))
       
