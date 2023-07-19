@@ -3,6 +3,7 @@
    clojure.string
    ebs.app.project.handlers
    [ebs.utils.components :as c]
+   [ebs.utils.datetime :as datetime]
    [ebs.utils.input :as input]
    [ebs.utils.views :as views]
    [markdown.core :as md]
@@ -95,25 +96,25 @@
 
         [:div.col-md-3
 
-         ;;; Created at
-         #_[c/form-group
-            "Created at"
-            [:input.form-control
-             {:type :datetime-local
-              :value (if-let [created-at (oops/oget @project "?created_at")]
-                       (datetime/firestore->datetime-input-fmt created-at)
-                       "")
-              :disabled true}]]
+         ;; Created at (read only)
+         [c/form-group
+          "Created at"
+          [:input.form-control
+           {:type :datetime-local
+            :value (if-let [created-at (:created_at @project)]
+                     (datetime/firestore->datetime-input-fmt created-at)
+                     "")
+            :disabled true}]]
 
-         ;;; Updated at
-         #_[c/form-group
-            "Updated at"
-            [:input.form-control
-             {:type :datetime-local
-              :value (if-let [updated-at (oops/oget @project "?updated_at")]
-                       (datetime/firestore->datetime-input-fmt updated-at)
-                       "")
-              :disabled true}]]]]
+         ;; Updated at (read only)
+         [c/form-group
+          "Updated at"
+          [:input.form-control
+           {:type :datetime-local
+            :value (if-let [updated-at (:updated_at @project)]
+                     (datetime/firestore->datetime-input-fmt updated-at)
+                     "")
+            :disabled true}]]]]
 
        :footer footer}]]))
 
