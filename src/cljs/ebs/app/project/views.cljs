@@ -150,7 +150,7 @@
           ;;; Title
           :title
           [:div.row
-           [:div.col-md-11
+           [:div.col-md-10
 
             ;; Toggle view/edit mode
             [c/toggle-comp
@@ -162,9 +162,15 @@
                :placeholder "Title"}]]]
 
 
-           ;;; Delete
-           [:div.col-md-1
-            [:button.btn.btn-danger.float-right.btn-sm
+
+           [:div.col-md-2
+            ;;; Update
+            [:button.btn.btn-primary.btn-sm
+             {:on-click #(rf/dispatch [:project/update! project])}
+             "Update"] " "
+
+            ;;; Delete
+            [:button.btn.btn-danger.btn-sm
              {:on-click #(rf/dispatch [:project/delete! (:id @project)])}
              "Delete"]]]
 
